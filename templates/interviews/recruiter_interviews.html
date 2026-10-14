@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Interviews - FirstHope{% endblock %}
+
+{% block content %}
+<div class="container wide">
+    <h2>Interviews</h2>
+
+    {% for i in interviews %}
+        <div class="card">
+            <h3 style="margin:0 0 6px;">
+                {{ i.application.candidate.username }}
+                <small style="color:#777;">for {{ i.application.job.title }}</small>
+            </h3>
+            <p style="margin:2px 0;">
+                {{ i.scheduled_at|date:"d M Y, h:i A" }} · {{ i.get_mode_display }}
+                <span class="badge badge-{{ i.status }}">{{ i.get_status_display }}</span>
+            </p>
+            <p style="margin:2px 0;">
+                {% if i.mode == 'online' %}
+                    <a href="{{ i.location_or_link }}" target="_blank" rel="noopener">{{ i.location_or_link }}</a>
+                {% else %}
+                    {{ i.location_or_link }}
+                {% endif %}
+            </p>
+            {% if i.notes %}<p style="margin:2px 0; color:#555;">Notes: {{ i.notes }}</p>{% endif %}
+
+            {% if i.status == 'scheduled' %}
+                <form method="post" action="{% url 'update_interview_status' i.pk %}"
+                      style="display:flex; gap:8px; margin-top:8px;">
+                    {% csrf_token %}
+                    <button type="submit" name="status" value="completed" class="btn"
+                            style="background:#27ae60;">Mark Completed</button>
+                    <button type="submit" name="status" value="cancelled" class="btn"
+                            style="background:#c0392b;">Cancel</button>
+                </form>
+            {% endif %}
+        </div>
+    {% empty %}
+        <p>No interviews scheduled yet. Shortlist a candidate and schedule one from the
+           Applicants page.</p>
+    {% endfor %}
+</div>
+{% endblock %}

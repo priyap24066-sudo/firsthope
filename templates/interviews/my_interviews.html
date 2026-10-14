@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}My Interviews - FirstHope{% endblock %}
+
+{% block content %}
+<div class="container wide">
+    <h2>My Interviews</h2>
+
+    {% for i in interviews %}
+        <div class="card">
+            <h3 style="margin:0 0 6px;">
+                <a href="{% url 'job_detail' i.application.job.pk %}">{{ i.application.job.title }}</a>
+                <small style="color:#777;">{{ i.application.job.company_name }}</small>
+            </h3>
+            <p style="margin:2px 0;">
+                {{ i.scheduled_at|date:"d M Y, h:i A" }} · {{ i.get_mode_display }}
+                <span class="badge badge-{{ i.status }}">{{ i.get_status_display }}</span>
+            </p>
+            <p style="margin:2px 0;">
+                {% if i.mode == 'online' %}
+                    <a href="{{ i.location_or_link }}" target="_blank" rel="noopener">Join interview</a>
+                {% else %}
+                    {{ i.location_or_link }}
+                {% endif %}
+            </p>
+            {% if i.notes %}<p style="margin:2px 0; color:#555;">Notes: {{ i.notes }}</p>{% endif %}
+        </div>
+    {% empty %}
+        <p>No interviews yet. Once a recruiter schedules one, it will appear here.</p>
+    {% endfor %}
+</div>
+{% endblock %}

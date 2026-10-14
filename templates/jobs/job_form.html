@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ heading }} - FirstHope{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>{{ heading }}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn">Save Job</button>
+    </form>
+    <p><a href="{% url 'my_jobs' %}">Cancel</a></p>
+</div>
+{% endblock %}

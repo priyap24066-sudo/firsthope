@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Applicants - {{ job.title }}{% endblock %}
+
+{% block content %}
+<div class="container wide">
+    <h2>Applicants for {{ job.title }}</h2>
+    <p><strong>{{ job.company_name }}</strong> · {{ job.location }} · {{ total }} application{{ total|pluralize }}</p>
+
+    <p>
+        Filter:
+        <a href="{% url 'job_applicants' job.pk %}"
+           {% if not current_status %}style="font-weight:bold;"{% endif %}>All</a>
+        {% for value, label in statuses %}
+            |
+            <a href="?status={{ value }}"
+               {% if current_status == value %}style="font-weight:bold;"{% endif %}>{{ label }}</a>
+        {% endfor %}
+    </p>
+
+    {% for app in applications %}
+        <div style="border:1px solid #ddd; padding:14px; border-radius:6px; margin-bottom:12px;">
+            <h3 style="margin:0 0 6px;">{{ app.candidate.username }}
+                <small style="color:#777;">{{ app.candidate.email }}</small>
+            </h3>
+
+            {% if app.candidate.candidate_profile %}
+                <p style="margin:2px 0;">
+                    {% if app.candidate.candidate_profile.phone %}Phone: {{ app.candidate.candidate_profile.phone }} · {% endif %}
+                    Experience: {{ app.candidate.candidate_profile.experience_years }} yr
+                    {% if app.candidate.candidate_profile.education %} · {{ app.candidate.candidate_profile.education }}{% endif %}
+                </p>
+                {% if app.candidate.candidate_profile.skills %}
+                    <p style="margin:2px 0;">Skills: {{ app.candidate.candidate_profile.skills }}</p>
+                {% endif %}
+            {% endif %}
+
+            {% if app.cover_letter %}
+                <p style="margin:6px 0;"><strong>Cover letter:</strong><br>{{ app.cover_letter|linebreaksbr }}</p>
+            {% endif %}
+
+            <p style="margin:6px 0; color:#777;">Applied on {{ app.applied_at|date:"d M Y, h:i A" }}</p>
+            <p style="margin:6px 0;">
+                Status: <strong>{{ app.get_status_display }}</strong> ·
+                <a href="{% url 'download_resume' app.pk %}" target="_blank">View resume</a>
+            </p>
+
+            <form method="post" action="{% url 'update_status' app.pk %}" style="display:flex; gap:8px;">
+                {% csrf_token %}
+                <button type="submit" name="status" value="shortlisted" class="btn" style="background:#2980b9;">Shortlist</button>
+                <button type="submit" name="status" value="rejected" class="btn" style="background:#c0392b;">Reject</button>
+                <button type="submit" name="status" value="hired" class="btn" style="background:#27ae60;">Hire</button>
+            </form>
+                        {% if app.status == 'shortlisted' %}
+                <p style="margin:8px 0 0;">
+                    <a href="{% url 'schedule_interview' app.pk %}" class="btn">Schedule Interview</a>
+                </p>
+            {% endif %}
+        </div>
+    {% empty %}
+        <p>No applications found.</p>
+    {% endfor %}
+
+    <p><a href="{% url 'my_jobs' %}">← Back to My Jobs</a></p>
+</div>
+{% endblock %}

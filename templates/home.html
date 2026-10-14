@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container wide">
+    <h1>Welcome to FirstHope</h1>
+    <p>Job Recruitment &amp; Applicant Tracking System</p>
+
+    {% if not user.is_authenticated %}
+        <p>Please <a href="{% url 'login' %}">login</a> or
+           <a href="{% url 'register' %}">register</a> to continue.</p>
+    {% endif %}
+</div>
+{% endblock %}

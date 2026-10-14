@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}My Dashboard - FirstHope{% endblock %}
+
+{% block content %}
+<div class="container wide">
+    <h2>Candidate Dashboard</h2>
+    <p>Welcome, <strong>{{ user.username }}</strong></p>
+
+    <h3>My applications</h3>
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-num">{{ stats.total }}</div>
+            <div class="stat-label">Total Applied</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num">{{ stats.applied }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num">{{ stats.shortlisted }}</div>
+            <div class="stat-label">Shortlisted</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num">{{ stats.rejected }}</div>
+            <div class="stat-label">Rejected</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num">{{ stats.hired }}</div>
+            <div class="stat-label">Hired</div>
+        </div>
+    </div>
+        <h3>Upcoming interviews</h3>
+    {% for i in upcoming_interviews %}
+        <div class="card">
+            <strong>{{ i.application.job.title }}</strong> · {{ i.application.job.company_name }}<br>
+            {{ i.scheduled_at|date:"d M Y, h:i A" }} · {{ i.get_mode_display }}
+            {% if i.mode == 'online' %}
+                · <a href="{{ i.location_or_link }}" target="_blank" rel="noopener">Join</a>
+            {% else %}
+                · {{ i.location_or_link }}
+            {% endif %}
+        </div>
+    {% empty %}
+        <p>No upcoming interviews.</p>
+    {% endfor %}
+
+    <h3>Recent applications</h3>
+    {% for app in recent_applications %}
+        <div class="card">
+            <a href="{% url 'job_detail' app.job.pk %}">{{ app.job.title }}</a>
+            · {{ app.job.company_name }}
+            <span class="badge badge-{{ app.status }}">{{ app.get_status_display }}</span>
+            <br>
+            <small style="color:#777;">Applied on {{ app.applied_at|date:"d M Y" }}</small>
+        </div>
+    {% empty %}
+        <p>You haven't applied for any jobs yet.
+            <a href="{% url 'job_list' %}">Browse jobs</a></p>
+    {% endfor %}
+    {% if stats.total > 5 %}
+        <p><a href="{% url 'my_applications' %}">View all applications →</a></p>
+    {% endif %}
+
+    <h3>Jobs recommended for you</h3>
+    {% for job in recommended_jobs %}
+        <div class="card">
+            <a href="{% url 'job_detail' job.pk %}"><strong>{{ job.title }}</strong></a><br>
+            {{ job.company_name }} · {{ job.location }} · {{ job.get_job_type_display }}<br>
+            <small style="color:#777;">Skills: {{ job.skills_required }}</small>
+        </div>
+    {% empty %}
+        <p>No recommendations yet. Add your skills in
+            <a href="{% url 'profile' %}">My Profile</a> to see matching jobs.</p>
+    {% endfor %}
+</div>
+{% endblock %}

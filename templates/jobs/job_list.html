@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Jobs - FirstHope{% endblock %}
+
+{% block content %}
+<div class="container wide">
+    <h2>Available Jobs</h2>
+
+    <form method="get" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
+        <input type="text" name="q" value="{{ q }}"
+               placeholder="Title, company or skill" style="flex:2; min-width:180px; margin:0;">
+        <input type="text" name="location" value="{{ location }}"
+               placeholder="Location" style="flex:1; min-width:120px; margin:0;">
+        <select name="job_type" style="flex:1; min-width:120px; margin:0;">
+            <option value="">All types</option>
+            {% for value, label in job_types %}
+                <option value="{{ value }}" {% if job_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn">Search</button>
+        <a href="{% url 'job_list' %}" style="align-self:center;">Clear</a>
+    </form>
+
+    <p style="color:#777;">{{ total }} job{{ total|pluralize }} found</p>
+
+    {% for job in page_obj %}
+        <div style="border:1px solid #ddd; padding:14px; border-radius:6px; margin-bottom:12px;">
+            <h3 style="margin:0 0 6px;">
+                <a href="{% url 'job_detail' job.pk %}">{{ job.title }}</a>
+            </h3>
+            <p style="margin:2px 0;"><strong>{{ job.company_name }}</strong> · {{ job.location }}</p>
+            <p style="margin:2px 0;">{{ job.get_job_type_display }}
+                {% if job.salary %} · {{ job.salary }}{% endif %}</p>
+            <p style="margin:2px 0; color:#777;">Posted {{ job.created_at|date:"d M Y" }}</p>
+        </div>
+    {% empty %}
+        <p>No jobs match your search.</p>
+    {% endfor %}
+
+    {% if page_obj.has_other_pages %}
+        <div style="margin-top:16px;">
+            {% if page_obj.has_previous %}
+                <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">← Previous</a>
+            {% endif %}
+            <span style="margin:0 10px;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Next →</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

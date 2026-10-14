@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}My Applications - FirstHope{% endblock %}
+
+{% block content %}
+<div class="container wide">
+    <h2>My Applications</h2>
+
+    {% for app in applications %}
+        <div style="border:1px solid #ddd; padding:14px; border-radius:6px; margin-bottom:12px;">
+            <h3 style="margin:0 0 6px;">
+                <a href="{% url 'job_detail' app.job.pk %}">{{ app.job.title }}</a>
+            </h3>
+            <p style="margin:2px 0;"><strong>{{ app.job.company_name }}</strong> · {{ app.job.location }}</p>
+            <p style="margin:6px 0;">Status:
+                <span class="badge badge-{{ app.status }}">{{ app.get_status_display }}</span>
+            </p>
+            <p style="margin:2px 0; color:#777;">Applied on {{ app.applied_at|date:"d M Y" }}</p>
+           <a href="{% url 'download_resume' app.pk %}" target="_blank">View my resume</a>
+        </div>
+    {% empty %}
+        <p>You haven't applied for any jobs yet. <a href="{% url 'job_list' %}">Browse jobs</a></p>
+    {% endfor %}
+</div>
+{% endblock %}

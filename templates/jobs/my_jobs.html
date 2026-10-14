@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}My Jobs - FirstHope{% endblock %}
+
+{% block content %}
+<div class="container wide">
+    <h2>My Posted Jobs</h2>
+    <a href="{% url 'job_create' %}" class="btn">+ Post New Job</a>
+    <br><br>
+
+    {% for job in jobs %}
+        <div style="border:1px solid #ddd; padding:14px; border-radius:6px; margin-bottom:12px;">
+            <h3 style="margin:0 0 6px;">
+                <a href="{% url 'job_detail' job.pk %}">{{ job.title }}</a>
+                {% if not job.is_active %}<small style="color:#c0392b;">(Closed)</small>{% endif %}
+            </h3>
+            <p style="margin:2px 0;">{{ job.company_name }} · {{ job.location }}</p>
+            <a href="{% url 'job_applicants' job.pk %}"><strong>Applicants ({{ job.applications.count }})</strong></a> |
+            <a href="{% url 'job_edit' job.pk %}">Edit</a> |
+            <a href="{% url 'job_delete' job.pk %}">Delete</a>
+        </div>
+    {% empty %}
+        <p>You haven't posted any jobs yet.</p>
+    {% endfor %}
+</div>
+{% endblock %}

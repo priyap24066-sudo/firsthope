@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Recruiter Dashboard - FirstHope{% endblock %}
+
+{% block content %}
+<div class="container wide">
+    <h2>Recruiter Dashboard</h2>
+    <p>Welcome, <strong>{{ user.username }}</strong>
+        {% if user.recruiter_profile.company_name %}
+            · {{ user.recruiter_profile.company_name }}
+        {% endif %}
+    </p>
+
+    <h3>Jobs</h3>
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-num">{{ total_jobs }}</div>
+            <div class="stat-label">Total Jobs</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num">{{ active_jobs }}</div>
+            <div class="stat-label">Active Jobs</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num">{{ stats.total }}</div>
+            <div class="stat-label">Total Applications</div>
+        </div>
+    </div>
+
+    <h3>Applications by status</h3>
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-num">{{ stats.applied }}</div>
+            <div class="stat-label">Applied</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num">{{ stats.shortlisted }}</div>
+            <div class="stat-label">Shortlisted</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num">{{ stats.rejected }}</div>
+            <div class="stat-label">Rejected</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num">{{ stats.hired }}</div>
+            <div class="stat-label">Hired</div>
+        </div>
+    </div>
+        <h3>Upcoming interviews</h3>
+    {% for i in upcoming_interviews %}
+        <div class="card">
+            <strong>{{ i.application.candidate.username }}</strong> for {{ i.application.job.title }}<br>
+            {{ i.scheduled_at|date:"d M Y, h:i A" }} · {{ i.get_mode_display }}
+        </div>
+    {% empty %}
+        <p>No upcoming interviews. <a href="{% url 'recruiter_interviews' %}">View all interviews</a></p>
+    {% endfor %}
+
+    <h3>Recent applications</h3>
+    {% for app in recent_applications %}
+        <div class="card">
+            <strong>{{ app.candidate.username }}</strong> applied for
+            <a href="{% url 'job_applicants' app.job.pk %}">{{ app.job.title }}</a>
+            <span class="badge badge-{{ app.status }}">{{ app.get_status_display }}</span>
+            <br>
+            <small style="color:#777;">{{ app.applied_at|date:"d M Y, h:i A" }}</small>
+        </div>
+    {% empty %}
+        <p>No applications yet.</p>
+    {% endfor %}
+
+    <h3>Jobs with most applicants</h3>
+    {% for job in job_stats %}
+        <div class="card">
+            <a href="{% url 'job_applicants' job.pk %}">{{ job.title }}</a>
+            · {{ job.location }}
+            · <strong>{{ job.app_count }}</strong> applicant{{ job.app_count|pluralize }}
+        </div>
+    {% empty %}
+        <p>You haven't posted any jobs yet.
+            <a href="{% url 'job_create' %}">Post a job</a></p>
+    {% endfor %}
+
+    <p><a href="{% url 'my_jobs' %}" class="btn">Manage My Jobs</a></p>
+</div>
+{% endblock %}

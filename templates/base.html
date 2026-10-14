@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FirstHope{% endblock %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f8; }
+        nav { background: #1e3a5f; padding: 12px 24px; display: flex;
+              justify-content: space-between; align-items: center; }
+        nav a, nav button { color: white; text-decoration: none; margin-left: 16px;
+              background: none; border: none; font-size: 16px; cursor: pointer; }
+        nav .brand { font-size: 22px; font-weight: bold; margin-left: 0; }
+        nav .user { color: #cfe0f5; margin-left: 16px; }
+        nav form { display: inline; }
+        .container { max-width: 480px; margin: 40px auto; background: white;
+              padding: 24px; border-radius: 8px; }
+        .container.wide { max-width: 800px; }
+        .messages { max-width: 480px; margin: 16px auto; }
+        .msg { background: #dff5e1; padding: 10px; border-radius: 6px; }
+        input, select { width: 100%; padding: 8px; margin: 4px 0 12px; box-sizing: border-box; }
+        .btn { background: #1e3a5f; color: white; padding: 10px 18px;
+               border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+        .errorlist { color: #c0392b; padding-left: 16px; }
+        .helptext { color: #777; font-size: 12px; }
+
+        .badge { padding: 3px 10px; border-radius: 10px; color: white; font-size: 14px; }
+        .badge-applied { background: #7f8c8d; }
+        .badge-shortlisted { background: #2980b9; }
+        .badge-rejected { background: #c0392b; }
+        .badge-hired { background: #27ae60; }
+        .badge-scheduled { background: #2980b9; }
+        .badge-completed { background: #27ae60; }
+        .badge-cancelled { background: #7f8c8d; }
+
+        .stats { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+        .stat-card { flex: 1; min-width: 120px; background: #f4f6f8; border-radius: 8px;
+                     padding: 14px; text-align: center; }
+        .stat-num { font-size: 28px; font-weight: bold; color: #1e3a5f; }
+        .stat-label { color: #777; font-size: 14px; }
+        .card { border: 1px solid #ddd; padding: 14px; border-radius: 6px; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="{% url 'home' %}" class="brand">FirstHope</a>
+    <div>
+        <a href="{% url 'job_list' %}">Jobs</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'dashboard' %}">Dashboard</a>
+            {% if user.role == 'recruiter' %}
+                <a href="{% url 'job_create' %}">Post Job</a>
+                <a href="{% url 'my_jobs' %}">My Jobs</a>
+                <a href="{% url 'recruiter_interviews' %}">Interviews</a>
+            {% endif %}
+            {% if user.role == 'candidate' %}
+                <a href="{% url 'my_applications' %}">My Applications</a>
+                <a href="{% url 'my_interviews' %}">My Interviews</a>
+            {% endif %}
+            <a href="{% url 'profile' %}">My Profile</a>
+            <span class="user">Hello, {{ user.username }} ({{ user.role }})</span>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit">Logout</button>
+            </form>
+        {% else %}
+            <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'register' %}">Register</a>
+        {% endif %}
+    </div>
+</nav>
+
+{% if messages %}
+<div class="messages">
+    {% for message in messages %}
+        <div class="msg">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% block content %}{% endblock %}
+
+</body>
+</html>
