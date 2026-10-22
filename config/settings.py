@@ -26,7 +26,8 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-only-insecure-key-change-me')
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = [h for h in os.environ.get('ALLOWED_HOSTS', '').split(',') if h]
-
+CSRF_TRUSTED_ORIGINS = ["https://firsthope.onrender.com"]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
 
@@ -175,3 +176,8 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
+    CSRF_TRUSTED_ORIGINS = ["https://firsthope.onrender.com"]
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
