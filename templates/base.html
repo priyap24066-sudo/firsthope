@@ -12,9 +12,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="FirstHope">
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f8;
-               min-height: 100vh; display: flex; flex-direction: column; }
-        main { flex: 1; }
+        body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f8; }
         nav { background: #1e3a5f; padding: 12px 24px; display: flex;
               justify-content: space-between; align-items: center; flex-wrap: wrap; }
         nav a, nav button { color: white; text-decoration: none; margin-left: 16px;
@@ -23,3 +21,102 @@
         nav .user { color: #cfe0f5; margin-left: 16px; }
         nav form { display: inline; }
         .menu-btn { display: none; font-size: 28px; margin-left: 0; }
+        .nav-links { display: flex; align-items: center; }
+
+        .container { max-width: 480px; margin: 40px auto; background: white;
+              padding: 24px; border-radius: 8px; }
+        .container.wide { max-width: 800px; }
+        .messages { max-width: 480px; margin: 16px auto; }
+        .msg { background: #dff5e1; padding: 10px; border-radius: 6px; }
+        input, select { width: 100%; padding: 8px; margin: 4px 0 12px; box-sizing: border-box; }
+        .btn { background: #1e3a5f; color: white; padding: 10px 18px;
+               border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+        .errorlist { color: #c0392b; padding-left: 16px; }
+        .helptext { color: #777; font-size: 12px; }
+
+        .badge { padding: 3px 10px; border-radius: 10px; color: white; font-size: 14px; }
+        .badge-applied { background: #7f8c8d; }
+        .badge-shortlisted { background: #2980b9; }
+        .badge-rejected { background: #c0392b; }
+        .badge-hired { background: #27ae60; }
+        .badge-scheduled { background: #2980b9; }
+        .badge-completed { background: #27ae60; }
+        .badge-cancelled { background: #7f8c8d; }
+
+        .stats { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+        .stat-card { flex: 1; min-width: 120px; background: #f4f6f8; border-radius: 8px;
+                     padding: 14px; text-align: center; }
+        .stat-num { font-size: 28px; font-weight: bold; color: #1e3a5f; }
+        .stat-label { color: #777; font-size: 14px; }
+        .card { border: 1px solid #ddd; padding: 14px; border-radius: 6px; margin-bottom: 12px; }
+        .footer { text-align: center; padding: 16px; margin-top: 40px;
+          background: #1e3a5f; color: #cfe0f5; font-size: 14px; }
+        @media (max-width: 768px) {
+            nav { padding: 12px 16px; }
+            .menu-btn { display: block; }
+            .nav-links { display: none; flex-direction: column; align-items: flex-start;
+                         width: 100%; padding-top: 10px; }
+            .nav-links.open { display: flex; }
+            .nav-links a, .nav-links .user, .nav-links button {
+                margin-left: 0; padding: 10px 0; width: 100%; text-align: left; }
+            .nav-links form { width: 100%; }
+            .container { margin: 16px; }
+            .messages { margin: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="{% url 'home' %}" class="brand">FirstHope</a>
+    <button class="menu-btn" type="button"
+            onclick="document.getElementById('nav-links').classList.toggle('open')">☰</button>
+    <div class="nav-links" id="nav-links">
+        <a href="{% url 'job_list' %}">Jobs</a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'dashboard' %}">Dashboard</a>
+            {% if user.role == 'recruiter' %}
+                <a href="{% url 'job_create' %}">Post Job</a>
+                <a href="{% url 'my_jobs' %}">My Jobs</a>
+                <a href="{% url 'recruiter_interviews' %}">Interviews</a>
+            {% endif %}
+            {% if user.role == 'candidate' %}
+                <a href="{% url 'my_applications' %}">My Applications</a>
+                <a href="{% url 'my_interviews' %}">My Interviews</a>
+            {% endif %}
+            <a href="{% url 'profile' %}">My Profile</a>
+            <span class="user">Hello, {{ user.username }} ({{ user.role }})</span>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit">Logout</button>
+            </form>
+        {% else %}
+            <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'register' %}">Register</a>
+        {% endif %}
+    </div>
+</nav>
+
+{% if messages %}
+<div class="messages">
+    {% for message in messages %}
+        <div class="msg">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% block content %}{% endblock %}
+<footer class="footer">
+    FirstHope - Job Recruitment &amp; Applicant Tracking System | Developed by Priya
+</footer>
+
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js');
+    });
+}
+</script>
+
+</body>
+</html>
