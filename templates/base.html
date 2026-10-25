@@ -12,7 +12,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="FirstHope">
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f8; }
+        body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f8;
+               position: relative; min-height: 100vh; box-sizing: border-box;
+               padding-bottom: 64px; }
         nav { background: #1e3a5f; padding: 12px 24px; display: flex;
               justify-content: space-between; align-items: center; flex-wrap: wrap; }
         nav a, nav button { color: white; text-decoration: none; margin-left: 16px;
@@ -49,8 +51,11 @@
         .stat-num { font-size: 28px; font-weight: bold; color: #1e3a5f; }
         .stat-label { color: #777; font-size: 14px; }
         .card { border: 1px solid #ddd; padding: 14px; border-radius: 6px; margin-bottom: 12px; }
-        .footer { text-align: center; padding: 16px; margin-top: 40px;
-          background: #1e3a5f; color: #cfe0f5; font-size: 14px; }
+
+        .footer { position: absolute; bottom: 0; left: 0; right: 0;
+                  text-align: center; padding: 16px;
+                  background: #1e3a5f; color: #cfe0f5; font-size: 14px; }
+
         @media (max-width: 768px) {
             nav { padding: 12px 16px; }
             .menu-btn { display: block; }
@@ -62,6 +67,8 @@
             .nav-links form { width: 100%; }
             .container { margin: 16px; }
             .messages { margin: 16px; }
+            .footer { font-size: 12px; padding: 12px; }
+            body { padding-bottom: 72px; }
         }
     </style>
 </head>
@@ -106,6 +113,7 @@
 {% endif %}
 
 {% block content %}{% endblock %}
+
 <footer class="footer">
     FirstHope - Job Recruitment &amp; Applicant Tracking System | Developed by Priya
 </footer>
