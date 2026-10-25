@@ -1,85 +1,82 @@
-# FirstHope – Job Portal
+# FirstHope - Job Recruitment & Applicant Tracking System
 
-FirstHope is a Django-based job portal designed to connect job seekers with recruiters. Candidates can explore job opportunities and manage their applications, while recruiters can post jobs and manage applicants.
+FirstHope is a web application where recruiters post jobs and candidates apply and track their applications. It also supports interview scheduling and has a REST API.
+
+**Live demo:** https://firsthope.onrender.com
 
 ## Features
 
-- User registration and login
-- Candidate and recruiter profiles
-- Job listing and job details
-- Job posting and management
-- Job application management
-- Candidate and recruiter dashboards
-- Interview scheduling
-- REST API integration
-- Access control and permissions
+**Recruiter**
+- Register and manage a company profile
+- Post and manage jobs
+- Review applications and update status (Applied, Shortlisted, Rejected, Hired)
+- Schedule interviews (Scheduled, Completed, Cancelled)
 
-## Technologies Used
+**Candidate**
+- Register and manage a profile
+- Upload a resume
+- Browse jobs without logging in
+- Apply for jobs with a cover letter (login required)
+- Track application status and view interviews
 
-- **Backend:** Python, Django
-- **Frontend:** HTML, CSS, JavaScript, Bootstrap
-- **Database:** SQLite (if configured in the project)
-- **API:** Django REST Framework (if configured)
+**General**
+- Separate dashboards for recruiters and candidates
+- Admin panel for managing users and data
+- REST API built with Django REST Framework
+- Mobile-friendly design with a hamburger menu
+- Installable as a Progressive Web App (PWA)
 
-## Project Structure
+## Tech Stack
 
-- `accounts/` – User accounts and profiles
-- `jobs/` – Job posting and listings
-- `applications/` – Job applications
-- `interviews/` – Interview scheduling
-- `dashboard/` – User dashboards
-- `restapi/` – API components
-- `config/` – Django project configuration
-- `templates/` – HTML templates
+- **Backend:** Django, Django REST Framework
+- **Database:** PostgreSQL (production on Render), SQLite (local development)
+- **Frontend:** HTML, CSS, JavaScript
+- **Deployment:** Render, GitHub, WhiteNoise
 
-## Installation and Setup
+## REST API
 
-1. Clone the repository:
+The API provides JSON endpoints for:
 
-   ```bash
-   git clone https://github.com/priyap24066-sudo/firsthope.git
-   ```
+- `/api/jobs/`
+- `/api/applications/`
+- `/api/interviews/`
+- `/api/me/`
 
-2. Navigate to the project folder:
+## Run Locally
 
-   ```bash
-   cd firsthope
-   ```
+```bash
+git clone https://github.com/priyap24066-sudo/firsthope.git
+cd firsthope
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
 
-3. Create and activate a virtual environment:
+Open http://127.0.0.1:8000/ in your browser.
 
-   ```bash
-   python -m venv venv
-   ```
+## Environment Variables (Production)
 
-   Windows PowerShell:
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `SECRET_KEY` | Django secret key |
+| `ALLOWED_HOSTS` | Allowed domain names |
+| `DEBUG` | Set to `False` in production |
 
-   ```powershell
-   venv\Scripts\Activate.ps1
-   ```
+Secrets are not stored in the code. They are set in the Render dashboard.
 
-4. Install dependencies:
+## Future Scope
 
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-5. Apply database migrations:
-
-   ```bash
-   python manage.py migrate
-   ```
-
-6. Start the development server:
-
-   ```bash
-   python manage.py runserver
-   ```
-
-7. Open `http://127.0.0.1:8000/` in your browser.
+- Email notifications for application and interview updates
+- Automatic resume parsing to fill profile details
+- Job search and filters
+- In-app chat between recruiters and candidates
+- Forgot password via email
+- Cloud storage (AWS S3 or Cloudinary) for uploaded resumes
 
 ## Author
 
-Priya Mani
-
-BCA Graduate | Aspiring Python Full Stack Developer
+Developed by Priya
