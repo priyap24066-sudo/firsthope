@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -21,6 +22,7 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.username} ({self.role})"
+
 
 class CandidateProfile(models.Model):
     user = models.OneToOneField(
@@ -48,6 +50,32 @@ class RecruiterProfile(models.Model):
     location = models.CharField(max_length=100, blank=True)
     designation = models.CharField(max_length=100, blank=True)
     about_company = models.TextField(blank=True)
+    is_verified = models.BooleanField(default=False)
+    verified_on = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def website(self):
+        return self.company_website
+
+    @website.setter
+    def website(self, value):
+        self.company_website = value
+
+    def clean(self):
+        super().clean()
+        if self.company_name:
+            qs = RecruiterProfile.objects.filter(
+                company_name__iexact=self.company_name.strip(),
+                is_verified=True,
+            )
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            elif self.user_id:
+                qs = qs.exclude(user_id=self.user_id)
+            if qs.exists():
+                raise ValidationError({
+                    'company_name': f'A verified company with the name "{self.company_name}" already exists.'
+                })
 
     def __str__(self):
         return f"Recruiter: {self.user.username}"

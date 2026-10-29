@@ -28,7 +28,13 @@
             <h3 style="margin:0 0 6px;">
                 <a href="{% url 'job_detail' job.pk %}">{{ job.title }}</a>
             </h3>
-            <p style="margin:2px 0;"><strong>{{ job.company_name }}</strong> · {{ job.location }}</p>
+            <p style="margin:2px 0;">
+                <strong>{{ job.company_name }}</strong>
+                {% if job.recruiter.recruiter_profile.is_verified %}
+                    <span class="badge badge-verified">Verified</span>
+                {% endif %}
+                · {{ job.location }}
+            </p>
             <p style="margin:2px 0;">{{ job.get_job_type_display }}
                 {% if job.salary %} · {{ job.salary }}{% endif %}</p>
             <p style="margin:2px 0; color:#777;">Posted {{ job.created_at|date:"d M Y" }}</p>

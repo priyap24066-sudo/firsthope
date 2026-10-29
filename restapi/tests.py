@@ -109,3 +109,27 @@ class ApiTests(APITestCase):
             format='multipart',
         )
         self.assertEqual(second.status_code, 400)
+
+    # --- Verification Tests for API ---
+
+    def test_unverified_recruiter_api_returns_403(self):
+        unverified_rec = make_user('unver_api_rec', 'recruiter', verified=False)
+        self.client.force_authenticate(user=unverified_rec)
+
+        response = self.client.post('/api/jobs/', {
+            'title': 'Blocked API Job', 'company_name': 'BlockedCo', 'location': 'Chennai',
+            'job_type': 'full_time', 'skills_required': 'Python',
+            'description': 'Blocked API description',
+        }, format='json')
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data.get('detail'), 'Your company is pending verification by the admin.')
+
+    def test_unverified_recruiter_jobs_hidden_from_public_api(self):
+        unverified_rec = make_user('unver_api_rec2', 'recruiter', verified=False)
+        make_job(unverified_rec, title='Unverified API Job')
+
+        response = self.client.get('/api/jobs/')
+        self.assertEqual(response.status_code, 200)
+        titles = [j['title'] for j in response.data['results']]
+        self.assertNotIn('Unverified API Job', titles)
+        self.assertIn('Django Developer', titles)

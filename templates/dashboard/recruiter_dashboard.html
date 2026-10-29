@@ -11,6 +11,12 @@
         {% endif %}
     </p>
 
+    {% if not user.recruiter_profile.is_verified %}
+        <div style="background: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 12px 16px; border-radius: 6px; margin: 16px 0;">
+            <strong>Notice:</strong> Your company is pending verification by the admin.
+        </div>
+    {% endif %}
+
     <h3>Jobs</h3>
     <div class="stats">
         <div class="stat-card">

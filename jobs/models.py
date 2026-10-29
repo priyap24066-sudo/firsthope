@@ -36,3 +36,34 @@ class Job(models.Model):
 
     def skills_list(self):
         return [s.strip() for s in self.skills_required.split(',') if s.strip()]
+
+
+class JobReport(models.Model):
+    job = models.ForeignKey(
+        Job,
+        on_delete=models.CASCADE,
+        related_name='reports',
+    )
+    reported_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='job_reports',
+    )
+    reason = models.TextField()
+    created_on = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('job', 'reported_by')
+        ordering = ['-created_on']
+
+    def __str__(self):
+        return f"Report on {self.job.title} by {self.reported_by.username}"
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            report_count = JobReport.objects.filter(job=self.job).count()
+            if report_count >= 3:
+                Job.objects.filter(pk=self.job_id).update(is_active=False)
+                self.job.is_active = False

@@ -65,7 +65,7 @@ def candidate_dashboard(request):
         for skill in skills:
             query |= Q(skills_required__icontains=skill)
         recommended = (
-            Job.objects.filter(is_active=True)
+            Job.objects.filter(is_active=True, recruiter__recruiter_profile__is_verified=True)
             .filter(query)
             .exclude(id__in=applied_job_ids)[:5]
         )

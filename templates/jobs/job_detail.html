@@ -5,7 +5,13 @@
 {% block content %}
 <div class="container wide">
     <h2>{{ job.title }}</h2>
-    <p><strong>{{ job.company_name }}</strong> · {{ job.location }}</p>
+    <p>
+        <strong>{{ job.company_name }}</strong>
+        {% if job.recruiter.recruiter_profile.is_verified %}
+            <span class="badge badge-verified">Verified</span>
+        {% endif %}
+        · {{ job.location }}
+    </p>
     <p>{{ job.get_job_type_display }}{% if job.salary %} · {{ job.salary }}{% endif %}</p>
 
     <p><strong>Skills required:</strong>
@@ -37,5 +43,22 @@
         <a href="{% url 'job_edit' job.pk %}" class="btn">Edit</a>
     {% endif %}
     <a href="{% url 'job_list' %}">← Back to jobs</a>
+
+    {% if user.is_authenticated and user.role == 'candidate' and job.is_active %}
+        <hr style="margin:28px 0 20px; border:none; border-top:1px solid #ddd;">
+        <div>
+            <h4 style="margin:0 0 10px;">Report this job</h4>
+            {% if has_reported %}
+                <p style="color:#777;">You have already reported this job.</p>
+            {% else %}
+                <form method="post" action="{% url 'report_job' job.pk %}">
+                    {% csrf_token %}
+                    <p style="margin:4px 0 8px; font-size:14px; color:#555;">Notice something fraudulent, suspicious, or inappropriate? Report this listing to our admin team:</p>
+                    <textarea name="reason" rows="3" required placeholder="Describe the issue with this job posting..." style="width:100%; padding:8px; margin:4px 0 12px; box-sizing:border-box; border:1px solid #ccc; border-radius:6px;"></textarea>
+                    <button type="submit" class="btn" style="background:#c0392b;">Report this job</button>
+                </form>
+            {% endif %}
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

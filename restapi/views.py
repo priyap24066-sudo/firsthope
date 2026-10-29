@@ -10,7 +10,12 @@ from applications.models import Application
 from interviews.models import Interview
 from jobs.models import Job
 
-from .permissions import IsCandidate, IsRecruiter, IsRecruiterOrCandidate
+from .permissions import (
+    IsCandidate,
+    IsRecruiter,
+    IsRecruiterOrCandidate,
+    IsVerifiedRecruiter,
+)
 from .serializers import ApplicationSerializer, InterviewSerializer, JobSerializer
 
 
@@ -20,21 +25,27 @@ class JobViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ('list', 'retrieve'):
             return [AllowAny()]
-        return [IsRecruiter()]
+        return [IsRecruiter(), IsVerifiedRecruiter()]
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Job.objects.select_related('recruiter')
+        queryset = Job.objects.select_related('recruiter', 'recruiter__recruiter_profile')
 
         # edit / delete: only own jobs
         if self.action in ('update', 'partial_update', 'destroy'):
             return queryset.filter(recruiter=user)
 
-        # read: active jobs (recruiter also sees own closed jobs)
+        # read: active jobs from verified recruiters (recruiter also sees own jobs)
         if user.is_authenticated and user.role == User.Role.RECRUITER:
-            queryset = queryset.filter(Q(is_active=True) | Q(recruiter=user))
+            queryset = queryset.filter(
+                (Q(is_active=True) & Q(recruiter__recruiter_profile__is_verified=True))
+                | Q(recruiter=user)
+            )
         else:
-            queryset = queryset.filter(is_active=True)
+            queryset = queryset.filter(
+                is_active=True,
+                recruiter__recruiter_profile__is_verified=True,
+            )
 
         if self.action == 'list':
             params = self.request.query_params
@@ -143,5 +154,6 @@ class MeView(APIView):
                 'company_website': p.company_website,
                 'location': p.location,
                 'designation': p.designation,
+                'is_verified': p.is_verified,
             }
         return Response(data)
