@@ -1,58 +1,112 @@
 {% extends 'base.html' %}
 
-{% block title %}Jobs - FirstHope{% endblock %}
+{% block title %}Available Jobs - FirstHope{% endblock %}
 
 {% block content %}
-<div class="container wide">
-    <h2>Available Jobs</h2>
+<div style="margin-bottom: var(--space-6);">
+    <h1>Explore career openings</h1>
+    <p style="color: var(--text-secondary); margin: 0;">Verified job listings from authentic hiring companies.</p>
+</div>
 
-    <form method="get" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;">
-        <input type="text" name="q" value="{{ q }}"
-               placeholder="Title, company or skill" style="flex:2; min-width:180px; margin:0;">
-        <input type="text" name="location" value="{{ location }}"
-               placeholder="Location" style="flex:1; min-width:120px; margin:0;">
-        <select name="job_type" style="flex:1; min-width:120px; margin:0;">
-            <option value="">All types</option>
-            {% for value, label in job_types %}
-                <option value="{{ value }}" {% if job_type == value %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-        </select>
-        <button type="submit" class="btn">Search</button>
-        <a href="{% url 'job_list' %}" style="align-self:center;">Clear</a>
-    </form>
+<div class="two-col-layout" style="grid-template-columns: 280px 1fr;">
+    <!-- Filter Sidebar -->
+    <aside class="sticky-side">
+        <div class="card">
+            <h3 style="font-size: var(--font-subtitle); margin-bottom: var(--space-3);">Filter jobs</h3>
+            <form method="get" action="{% url 'job_list' %}">
+                <div class="form-group">
+                    <label for="id_q">Keywords</label>
+                    <input type="text" id="id_q" name="q" value="{{ q }}" placeholder="Title, skill or company">
+                </div>
 
-    <p style="color:#777;">{{ total }} job{{ total|pluralize }} found</p>
+                <div class="form-group">
+                    <label for="id_location">Location</label>
+                    <input type="text" id="id_location" name="location" value="{{ location }}" placeholder="City name">
+                </div>
 
-    {% for job in page_obj %}
-        <div style="border:1px solid #ddd; padding:14px; border-radius:6px; margin-bottom:12px;">
-            <h3 style="margin:0 0 6px;">
-                <a href="{% url 'job_detail' job.pk %}">{{ job.title }}</a>
-            </h3>
-            <p style="margin:2px 0;">
-                <strong>{{ job.company_name }}</strong>
-                {% if job.recruiter.recruiter_profile.is_verified %}
-                    <span class="badge badge-verified">Verified</span>
+                <div class="form-group">
+                    <label for="id_job_type">Employment type</label>
+                    <select id="id_job_type" name="job_type">
+                        <option value="">All job types</option>
+                        {% for value, label in job_types %}
+                            <option value="{{ value }}" {% if job_type == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: var(--space-2); margin-top: var(--space-4);">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Apply filters</button>
+                    {% if q or location or job_type %}
+                        <a href="{% url 'job_list' %}" class="btn btn-secondary" style="flex: 1;">Clear</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </aside>
+
+    <!-- Job Results -->
+    <section>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
+            <div style="font-size: var(--font-small); color: var(--text-secondary); font-weight: 500;">
+                Showing <strong>{{ total }}</strong> job{{ total|pluralize }}
+            </div>
+        </div>
+
+        {% for job in page_obj %}
+            <article class="card" style="transition: border-color 150ms ease;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-2);">
+                    <div>
+                        <h3 style="font-size: 18px; margin-bottom: var(--space-1);">
+                            <a href="{% url 'job_detail' job.pk %}">{{ job.title }}</a>
+                        </h3>
+                        <div style="display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-small);">
+                            <strong style="color: var(--text-secondary);">{{ job.company_name }}</strong>
+                            {% if job.recruiter.recruiter_profile.is_verified %}
+                                <span class="badge badge-verified">Verified</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span class="badge" style="background: var(--border-subtle); color: var(--text-secondary);">
+                        {{ job.get_job_type_display }}
+                    </span>
+                </div>
+
+                <p style="color: var(--text-muted); font-size: var(--font-small); margin-bottom: var(--space-3);">
+                    {{ job.location }}
+                    {% if job.salary %} &middot; {{ job.salary }}{% endif %}
+                    &middot; Posted {{ job.created_at|date:"M d, Y" }}
+                </p>
+
+                <div>
+                    {% for skill in job.skills_list|slice:":4" %}
+                        <span class="skill-tag">{{ skill }}</span>
+                    {% endfor %}
+                </div>
+            </article>
+        {% empty %}
+            <div class="card" style="text-align: center; padding: var(--space-8);">
+                <h3>No matching jobs found</h3>
+                <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+                    Try adjusting your search criteria, removing location filters, or checking back soon.
+                </p>
+                <a href="{% url 'job_list' %}" class="btn btn-secondary">Clear all filters</a>
+            </div>
+        {% endfor %}
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <div style="display: flex; justify-content: center; align-items: center; gap: var(--space-3); margin-top: var(--space-6);">
+                {% if page_obj.has_previous %}
+                    <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}" class="btn btn-secondary btn-sm">&larr; Previous</a>
                 {% endif %}
-                · {{ job.location }}
-            </p>
-            <p style="margin:2px 0;">{{ job.get_job_type_display }}
-                {% if job.salary %} · {{ job.salary }}{% endif %}</p>
-            <p style="margin:2px 0; color:#777;">Posted {{ job.created_at|date:"d M Y" }}</p>
-        </div>
-    {% empty %}
-        <p>No jobs match your search.</p>
-    {% endfor %}
-
-    {% if page_obj.has_other_pages %}
-        <div style="margin-top:16px;">
-            {% if page_obj.has_previous %}
-                <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">← Previous</a>
-            {% endif %}
-            <span style="margin:0 10px;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-            {% if page_obj.has_next %}
-                <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Next →</a>
-            {% endif %}
-        </div>
-    {% endif %}
+                <span style="font-size: var(--font-small); color: var(--text-secondary);">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+                {% if page_obj.has_next %}
+                    <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}" class="btn btn-secondary btn-sm">Next &rarr;</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </section>
 </div>
 {% endblock %}

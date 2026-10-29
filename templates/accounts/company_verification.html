@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}Company Verification - FirstHope{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: var(--space-6);">
+    <h1>Company verification</h1>
+    <p style="color: var(--text-secondary); margin: 0;">
+        Submit authentic business documentation to earn verified recruiter status and unlock job posting.
+    </p>
+</div>
+
+<!-- Verification Status Overview Banner -->
+<div class="card" style="border-left: 4px solid {% if profile.is_verified %}#059669{% else %}#d97706{% endif %};">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3);">
+        <div>
+            <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-1);">
+                <h3 style="margin-bottom: 0;">{{ profile.company_name|default:user.username }}</h3>
+                {% if profile.is_verified %}
+                    <span class="badge badge-verified">Verified company</span>
+                {% else %}
+                    <span class="badge badge-pending">Verification pending</span>
+                {% endif %}
+            </div>
+            <p style="color: var(--text-secondary); font-size: var(--font-small); margin: 0;">
+                {% if profile.is_verified %}
+                    Your company is verified. You can post active job listings on FirstHope.
+                {% else %}
+                    Upload your company registration, GST, or business licence below. Our admin team verifies all documents within 24 hours.
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'profile' %}" class="btn btn-secondary btn-sm">Edit company details</a>
+        </div>
+    </div>
+</div>
+
+{% if not has_details %}
+    <div class="alert alert-warning">
+        <div>
+            <strong>Company profile incomplete:</strong> Please ensure your company name, website, official company email, and registered address are filled in your <a href="{% url 'profile' %}">company profile</a> before verification.
+        </div>
+    </div>
+{% endif %}
+
+<div class="two-col-layout" style="grid-template-columns: 1fr 1fr;">
+    <!-- Upload Document Form -->
+    <div class="card">
+        <h3>Upload business proof</h3>
+        <p style="color: var(--text-secondary); font-size: var(--font-small); margin-bottom: var(--space-4);">
+            Upload official government-issued business registration certificates.
+        </p>
+
+        {% if can_upload %}
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="id_document_type">Document type</label>
+                    <select id="id_document_type" name="document_type" required>
+                        <option value="">Select certificate type</option>
+                        {% for val, label in form.fields.document_type.choices %}
+                            {% if val %}
+                                <option value="{{ val }}" {% if form.document_type.value == val %}selected{% endif %}>{{ label }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                    {% if form.document_type.errors %}<div class="errorlist">{{ form.document_type.errors }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_description">Description <span style="font-weight: normal; color: var(--text-muted);">(Required if 'Other proof')</span></label>
+                    <input type="text" id="id_description" name="description" value="{{ form.description.value|default:'' }}" placeholder="Document details or authority name">
+                    {% if form.description.errors %}<div class="errorlist">{{ form.description.errors }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_file">File upload</label>
+                    <input type="file" id="id_file" name="file" required accept=".pdf,.jpg,.jpeg,.png">
+                    <span class="helptext">Accepted: PDF, JPG, PNG (Max 5 MB). High quality scanned copies only.</span>
+                    {% if form.file.errors %}<div class="errorlist">{{ form.file.errors }}</div>{% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: var(--space-2);">
+                    Submit proof for review
+                </button>
+            </form>
+        {% else %}
+            <div class="alert alert-info">
+                You have reached the maximum of 3 uploaded documents. If your documents were rejected or you need assistance, please contact admin support.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Submitted Documents History -->
+    <div class="card">
+        <h3>Submitted documents ({{ documents.count }}/3)</h3>
+        <p style="color: var(--text-secondary); font-size: var(--font-small); margin-bottom: var(--space-4);">
+            Review status and admin notes for submitted verification documents.
+        </p>
+
+        {% for doc in documents %}
+            <div style="border: 1px solid var(--border-color); border-radius: var(--radius); padding: var(--space-3); margin-bottom: var(--space-3); background: var(--bg-surface);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-2); margin-bottom: var(--space-2);">
+                    <div>
+                        <strong style="color: var(--text-primary); font-size: var(--font-body);">
+                            {{ doc.get_document_type_display }}
+                        </strong>
+                        <div style="font-size: var(--font-small); color: var(--text-muted);">
+                            {{ doc.file_name }} ({{ doc.file_size|filesizeformat }})
+                        </div>
+                    </div>
+                    {% if doc.status == 'approved' %}
+                        <span class="badge badge-hired">Approved</span>
+                    {% elif doc.status == 'rejected' %}
+                        <span class="badge badge-rejected">Rejected</span>
+                    {% else %}
+                        <span class="badge badge-pending">Pending review</span>
+                    {% endif %}
+                </div>
+
+                {% if doc.description %}
+                    <p style="font-size: var(--font-small); color: var(--text-secondary); margin-bottom: var(--space-2);">
+                        <strong>Note:</strong> {{ doc.description }}
+                    </p>
+                {% endif %}
+
+                {% if doc.admin_note %}
+                    <div style="font-size: var(--font-small); background: #fef2f2; color: #991b1b; padding: var(--space-2); border-radius: var(--radius); margin-bottom: var(--space-2);">
+                        <strong>Admin review note:</strong> {{ doc.admin_note }}
+                    </div>
+                {% endif %}
+
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: var(--font-small); color: var(--text-muted); border-top: 1px solid var(--border-subtle); padding-top: var(--space-2); margin-top: var(--space-2);">
+                    <span>Uploaded on {{ doc.uploaded_on|date:"M d, Y" }}</span>
+                    <a href="{% url 'download_document' doc.pk %}" style="font-weight: 500;">Download</a>
+                </div>
+            </div>
+        {% empty %}
+            <div style="text-align: center; padding: var(--space-6); color: var(--text-muted); font-size: var(--font-small);">
+                No documents uploaded yet. Upload at least one business certificate to get verified.
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

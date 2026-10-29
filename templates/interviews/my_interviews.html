@@ -3,30 +3,58 @@
 {% block title %}My Interviews - FirstHope{% endblock %}
 
 {% block content %}
-<div class="container wide">
-    <h2>My Interviews</h2>
+<div style="margin-bottom: var(--space-6);">
+    <h1>My interviews</h1>
+    <p style="color: var(--text-secondary); margin: 0;">Review your upcoming and past interview schedules with employers.</p>
+</div>
 
+<div style="display: flex; flex-direction: column; gap: var(--space-4);">
     {% for i in interviews %}
-        <div class="card">
-            <h3 style="margin:0 0 6px;">
-                <a href="{% url 'job_detail' i.application.job.pk %}">{{ i.application.job.title }}</a>
-                <small style="color:#777;">{{ i.application.job.company_name }}</small>
-            </h3>
-            <p style="margin:2px 0;">
-                {{ i.scheduled_at|date:"d M Y, h:i A" }} · {{ i.get_mode_display }}
+        <article class="card" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-3);">
+                <div>
+                    <h3 style="font-size: 18px; margin-bottom: var(--space-1);">
+                        <a href="{% url 'job_detail' i.application.job.pk %}">{{ i.application.job.title }}</a>
+                        <span style="font-size: var(--font-small); color: var(--text-muted); font-weight: normal;">
+                            &bull; {{ i.application.job.company_name }}
+                        </span>
+                    </h3>
+                    <div style="font-size: var(--font-small); color: var(--text-secondary);">
+                        Date &amp; Time: <strong>{{ i.scheduled_at|date:"l, M d, Y \a\\t h:i A" }}</strong> &bull; Mode: {{ i.get_mode_display }}
+                    </div>
+                </div>
+
                 <span class="badge badge-{{ i.status }}">{{ i.get_status_display }}</span>
-            </p>
-            <p style="margin:2px 0;">
-                {% if i.mode == 'online' %}
-                    <a href="{{ i.location_or_link }}" target="_blank" rel="noopener">Join interview</a>
-                {% else %}
-                    {{ i.location_or_link }}
+            </div>
+
+            {% if i.notes %}
+                <div style="background: var(--bg-page); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: var(--space-3); font-size: var(--font-small); margin-bottom: var(--space-3);">
+                    <strong>Recruiter instructions:</strong> {{ i.notes }}
+                </div>
+            {% endif %}
+
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: var(--space-3); flex-wrap: wrap; gap: var(--space-3);">
+                <div style="font-size: var(--font-small); color: var(--text-muted);">
+                    {% if i.mode == 'online' %}
+                        Virtual meeting via video conference
+                    {% else %}
+                        Location: {{ i.location_or_link }}
+                    {% endif %}
+                </div>
+
+                {% if i.mode == 'online' and i.location_or_link %}
+                    <a href="{{ i.location_or_link }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">
+                        Join interview meeting &rarr;
+                    </a>
                 {% endif %}
-            </p>
-            {% if i.notes %}<p style="margin:2px 0; color:#555;">Notes: {{ i.notes }}</p>{% endif %}
-        </div>
+            </div>
+        </article>
     {% empty %}
-        <p>No interviews yet. Once a recruiter schedules one, it will appear here.</p>
+        <div class="card" style="text-align: center; padding: var(--space-8); color: var(--text-muted);">
+            <h3>No interviews scheduled</h3>
+            <p style="margin-bottom: var(--space-4);">When recruiters shortlist your applications and schedule an interview, it will appear here.</p>
+            <a href="{% url 'my_applications' %}" class="btn btn-secondary btn-sm">View my applications</a>
+        </div>
     {% endfor %}
 </div>
 {% endblock %}

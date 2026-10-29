@@ -1,15 +1,39 @@
 {% extends 'base.html' %}
 
-{% block title %}Login - FirstHope{% endblock %}
+{% block title %}Log In - FirstHope{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2>Login</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn">Login</button>
-    </form>
-    <p>New here? <a href="{% url 'register' %}">Register</a></p>
+<div class="container-narrow">
+    <div class="card" style="padding: var(--space-6);">
+        <h2 style="margin-bottom: var(--space-2); text-align: center;">Sign in to your account</h2>
+        <p style="color: var(--text-secondary); font-size: var(--font-small); text-align: center; margin-bottom: var(--space-6);">
+            Access your applications, job listings, and interviews.
+        </p>
+
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="id_username">Username or Email</label>
+                <input type="text" id="id_username" name="username" required autofocus placeholder="name@example.com or username">
+            </div>
+
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-1);">
+                    <label for="id_password" style="margin-bottom: 0;">Password</label>
+                    <a href="{% url 'password_reset' %}" style="font-size: var(--font-small);">Forgot password?</a>
+                </div>
+                <input type="password" id="id_password" name="password" required placeholder="Enter your password">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: var(--space-3);">
+                Sign in
+            </button>
+        </form>
+
+        <div style="margin-top: var(--space-6); text-align: center; font-size: var(--font-small); color: var(--text-secondary); border-top: 1px solid var(--border-subtle); padding-top: var(--space-4);">
+            Do not have an account? <a href="{% url 'register' %}" style="font-weight: 500;">Create an account</a>
+        </div>
+    </div>
 </div>
 {% endblock %}

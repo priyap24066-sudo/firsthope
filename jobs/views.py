@@ -43,7 +43,7 @@ def job_list(request):
     if job_type:
         jobs = jobs.filter(job_type=job_type)
 
-    paginator = Paginator(jobs, 5)
+    paginator = Paginator(jobs, 6)
     page_obj = paginator.get_page(request.GET.get('page'))
 
     params = request.GET.copy()
@@ -133,8 +133,8 @@ def my_jobs(request):
 def job_create(request):
     profile = getattr(request.user, 'recruiter_profile', None)
     if not (profile and profile.is_verified):
-        messages.warning(request, 'Your company is pending verification by the admin.')
-        return redirect('dashboard')
+        messages.warning(request, 'Upload your company proof to start posting jobs')
+        return redirect('company_verification')
 
     if request.method == 'POST':
         form = JobForm(request.POST)
@@ -155,8 +155,8 @@ def job_create(request):
 def job_edit(request, pk):
     profile = getattr(request.user, 'recruiter_profile', None)
     if not (profile and profile.is_verified):
-        messages.warning(request, 'Your company is pending verification by the admin.')
-        return redirect('dashboard')
+        messages.warning(request, 'Upload your company proof to start posting jobs')
+        return redirect('company_verification')
 
     job = get_object_or_404(Job, pk=pk, recruiter=request.user)
 

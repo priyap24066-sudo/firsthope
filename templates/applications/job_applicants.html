@@ -3,64 +3,107 @@
 {% block title %}Applicants - {{ job.title }}{% endblock %}
 
 {% block content %}
-<div class="container wide">
-    <h2>Applicants for {{ job.title }}</h2>
-    <p><strong>{{ job.company_name }}</strong> · {{ job.location }} · {{ total }} application{{ total|pluralize }}</p>
+<div style="margin-bottom: var(--space-4);">
+    <a href="{% url 'my_jobs' %}" style="font-size: var(--font-small); color: var(--text-muted);">&larr; Back to My Jobs</a>
+</div>
 
-    <p>
-        Filter:
-        <a href="{% url 'job_applicants' job.pk %}"
-           {% if not current_status %}style="font-weight:bold;"{% endif %}>All</a>
-        {% for value, label in statuses %}
-            |
-            <a href="?status={{ value }}"
-               {% if current_status == value %}style="font-weight:bold;"{% endif %}>{{ label }}</a>
-        {% endfor %}
-    </p>
+<div style="margin-bottom: var(--space-6); display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--space-3);">
+    <div>
+        <h1>Applicants for {{ job.title }}</h1>
+        <p style="color: var(--text-secondary); margin: 0;">
+            {{ job.company_name }} &bull; {{ job.location }} &bull; {{ total }} total applicant{{ total|pluralize }}
+        </p>
+    </div>
+</div>
 
+<!-- Filter Tabs -->
+<div class="segmented-control" style="margin-bottom: var(--space-6);">
+    <a href="{% url 'job_applicants' job.pk %}" class="segmented-btn {% if not current_status %}active{% endif %}">
+        All ({{ total }})
+    </a>
+    {% for val, label in statuses %}
+        <a href="?status={{ val }}" class="segmented-btn {% if current_status == val %}active{% endif %}">
+            {{ label }}
+        </a>
+    {% endfor %}
+</div>
+
+<!-- Applicant Cards -->
+<div style="display: flex; flex-direction: column; gap: var(--space-4);">
     {% for app in applications %}
-        <div style="border:1px solid #ddd; padding:14px; border-radius:6px; margin-bottom:12px;">
-            <h3 style="margin:0 0 6px;">{{ app.candidate.username }}
-                <small style="color:#777;">{{ app.candidate.email }}</small>
-            </h3>
+        <article class="card" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-3);">
+                <div>
+                    <h3 style="font-size: 18px; margin-bottom: var(--space-1);">
+                        {{ app.candidate.username }}
+                        <span style="font-size: var(--font-small); font-weight: normal; color: var(--text-muted);">
+                            &bull; {{ app.candidate.email }}
+                        </span>
+                    </h3>
+                    <div style="font-size: var(--font-small); color: var(--text-secondary);">
+                        {% if app.candidate.candidate_profile %}
+                            {% if app.candidate.candidate_profile.phone %}Phone: {{ app.candidate.candidate_profile.phone }} &bull; {% endif %}
+                            Experience: {{ app.candidate.candidate_profile.experience_years }} year{{ app.candidate.candidate_profile.experience_years|pluralize }}
+                            {% if app.candidate.candidate_profile.education %} &bull; {{ app.candidate.candidate_profile.education }}{% endif %}
+                        {% endif %}
+                    </div>
+                </div>
 
-            {% if app.candidate.candidate_profile %}
-                <p style="margin:2px 0;">
-                    {% if app.candidate.candidate_profile.phone %}Phone: {{ app.candidate.candidate_profile.phone }} · {% endif %}
-                    Experience: {{ app.candidate.candidate_profile.experience_years }} yr
-                    {% if app.candidate.candidate_profile.education %} · {{ app.candidate.candidate_profile.education }}{% endif %}
-                </p>
-                {% if app.candidate.candidate_profile.skills %}
-                    <p style="margin:2px 0;">Skills: {{ app.candidate.candidate_profile.skills }}</p>
-                {% endif %}
+                <div style="display: flex; align-items: center; gap: var(--space-3);">
+                    <span class="badge badge-{{ app.status }}">{{ app.get_status_display }}</span>
+                    <a href="{% url 'download_resume' app.pk %}" target="_blank" class="btn btn-secondary btn-sm">
+                        View resume
+                    </a>
+                </div>
+            </div>
+
+            {% if app.candidate.candidate_profile.skills %}
+                <div style="margin-bottom: var(--space-3);">
+                    {% for skill in app.candidate.candidate_profile.skills.split %}
+                        <span class="skill-tag">{{ skill|cut:"," }}</span>
+                    {% endfor %}
+                </div>
             {% endif %}
 
             {% if app.cover_letter %}
-                <p style="margin:6px 0;"><strong>Cover letter:</strong><br>{{ app.cover_letter|linebreaksbr }}</p>
+                <details style="margin-bottom: var(--space-3); background: var(--bg-page); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: var(--space-2) var(--space-3);">
+                    <summary style="font-size: var(--font-small); font-weight: 500; cursor: pointer; color: var(--text-secondary);">
+                        View cover letter
+                    </summary>
+                    <div style="margin-top: var(--space-2); font-size: var(--font-small); color: var(--text-secondary); white-space: pre-line;">
+                        {{ app.cover_letter }}
+                    </div>
+                </details>
             {% endif %}
 
-            <p style="margin:6px 0; color:#777;">Applied on {{ app.applied_at|date:"d M Y, h:i A" }}</p>
-            <p style="margin:6px 0;">
-                Status: <strong>{{ app.get_status_display }}</strong> ·
-                <a href="{% url 'download_resume' app.pk %}" target="_blank">View resume</a>
-            </p>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: var(--space-3); flex-wrap: wrap; gap: var(--space-3);">
+                <div style="font-size: var(--font-small); color: var(--text-muted);">
+                    Applied {{ app.applied_at|date:"M d, Y, h:i A" }}
+                </div>
 
-            <form method="post" action="{% url 'update_status' app.pk %}" style="display:flex; gap:8px;">
-                {% csrf_token %}
-                <button type="submit" name="status" value="shortlisted" class="btn" style="background:#2980b9;">Shortlist</button>
-                <button type="submit" name="status" value="rejected" class="btn" style="background:#c0392b;">Reject</button>
-                <button type="submit" name="status" value="hired" class="btn" style="background:#27ae60;">Hire</button>
-            </form>
-                        {% if app.status == 'shortlisted' %}
-                <p style="margin:8px 0 0;">
-                    <a href="{% url 'schedule_interview' app.pk %}" class="btn">Schedule Interview</a>
-                </p>
-            {% endif %}
-        </div>
+                <div style="display: flex; gap: var(--space-2);">
+                    {% if app.status == 'shortlisted' %}
+                        <a href="{% url 'schedule_interview' app.pk %}" class="btn btn-primary btn-sm">Schedule interview</a>
+                    {% endif %}
+                    <form method="post" action="{% url 'update_status' app.pk %}" style="display: inline-flex; gap: var(--space-2);">
+                        {% csrf_token %}
+                        {% if app.status != 'shortlisted' %}
+                            <button type="submit" name="status" value="shortlisted" class="btn btn-secondary btn-sm">Shortlist</button>
+                        {% endif %}
+                        {% if app.status != 'hired' %}
+                            <button type="submit" name="status" value="hired" class="btn btn-secondary btn-sm" style="color: #03543f;">Hire</button>
+                        {% endif %}
+                        {% if app.status != 'rejected' %}
+                            <button type="submit" name="status" value="rejected" class="btn btn-secondary btn-sm" style="color: #9b1c1c;">Reject</button>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </article>
     {% empty %}
-        <p>No applications found.</p>
+        <div class="card" style="text-align: center; padding: var(--space-8); color: var(--text-muted);">
+            No applications match this status filter.
+        </div>
     {% endfor %}
-
-    <p><a href="{% url 'my_jobs' %}">← Back to My Jobs</a></p>
 </div>
 {% endblock %}

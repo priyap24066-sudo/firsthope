@@ -1,18 +1,45 @@
 {% extends 'base.html' %}
 
-{% block title %}Apply - {{ job.title }}{% endblock %}
+{% block title %}Apply for {{ job.title }} - FirstHope{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2>Apply for {{ job.title }}</h2>
-    <p><strong>{{ job.company_name }}</strong> · {{ job.location }}</p>
+<div class="container-narrow" style="max-width: 560px;">
+    <div style="margin-bottom: var(--space-4);">
+        <a href="{% url 'job_detail' job.pk %}" style="font-size: var(--font-small); color: var(--text-muted);">&larr; Back to job details</a>
+    </div>
 
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <p class="helptext">Allowed: PDF, DOC, DOCX. Maximum 2 MB.</p>
-        <button type="submit" class="btn">Submit Application</button>
-    </form>
-    <p><a href="{% url 'job_detail' job.pk %}">Cancel</a></p>
+    <div class="card" style="padding: var(--space-6);">
+        <h1 style="font-size: 22px; margin-bottom: var(--space-1);">Apply for {{ job.title }}</h1>
+        <p style="color: var(--text-secondary); font-size: var(--font-small); margin-bottom: var(--space-6);">
+            <strong>{{ job.company_name }}</strong> &bull; {{ job.location }}
+        </p>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="{{ form.resume.id_for_label }}">Resume file <span style="color:#dc2626;">*</span></label>
+                {{ form.resume }}
+                <span class="helptext">Accepted: PDF, DOC, DOCX. Maximum file size: 2 MB.</span>
+                {% if form.resume.errors %}<div class="errorlist">{{ form.resume.errors }}</div>{% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.cover_letter.id_for_label }}">Cover letter <span style="font-weight: normal; color: var(--text-muted);">(Optional)</span></label>
+                {{ form.cover_letter }}
+                <span class="helptext">Briefly introduce yourself and why you are interested in this position.</span>
+                {% if form.cover_letter.errors %}<div class="errorlist">{{ form.cover_letter.errors }}</div>{% endif %}
+            </div>
+
+            <div style="display: flex; gap: var(--space-3); margin-top: var(--space-6);">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Submit application</button>
+                <a href="{% url 'job_detail' job.pk %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

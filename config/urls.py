@@ -16,5 +16,6 @@ urlpatterns = [
     path('jobs/', include('jobs.urls')),
     path('applications/', include('applications.urls')),
     path('interviews/', include('interviews.urls')),
+    path('coach/', include('chatbot.urls')),
     path('', include('accounts.urls')),
 ]

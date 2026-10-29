@@ -1,77 +1,123 @@
 {% extends 'base.html' %}
 
-{% block title %}My Dashboard - FirstHope{% endblock %}
+{% block title %}Candidate Dashboard - FirstHope{% endblock %}
 
 {% block content %}
-<div class="container wide">
-    <h2>Candidate Dashboard</h2>
-    <p>Welcome, <strong>{{ user.username }}</strong></p>
+<div style="margin-bottom: var(--space-6);">
+    <h1>Candidate dashboard</h1>
+    <p style="color: var(--text-secondary); margin: 0;">Welcome, <strong>{{ user.username }}</strong></p>
+</div>
 
-    <h3>My applications</h3>
-    <div class="stats">
-        <div class="stat-card">
-            <div class="stat-num">{{ stats.total }}</div>
-            <div class="stat-label">Total Applied</div>
+<!-- Compact Stat Tiles -->
+<div class="stats-grid">
+    <div class="stat-tile">
+        <div class="stat-value">{{ stats.total }}</div>
+        <div class="stat-label">Applications submitted</div>
+    </div>
+    <div class="stat-tile">
+        <div class="stat-value">{{ stats.shortlisted }}</div>
+        <div class="stat-label">Shortlisted</div>
+    </div>
+    <div class="stat-tile">
+        <div class="stat-value">{{ stats.hired }}</div>
+        <div class="stat-label">Hired</div>
+    </div>
+</div>
+
+<div class="two-col-layout">
+    <!-- Left Column: Applications & Interviews -->
+    <div>
+        <!-- AI Coach Banner -->
+        <div class="card" style="background: #eff6ff; border-color: #bfdbfe; margin-bottom: var(--space-6);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3);">
+                <div>
+                    <h3 style="color: var(--brand-navy); font-size: 18px; margin-bottom: var(--space-1);">Practice with your AI Coach</h3>
+                    <p style="color: var(--text-secondary); font-size: var(--font-small); margin: 0;">
+                        Build custom resume points, practice mock interview questions, or polish your English conversation skills.
+                    </p>
+                </div>
+                <a href="{% url 'coach' %}" class="btn btn-primary btn-sm">Launch AI Coach</a>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-num">{{ stats.applied }}</div>
-            <div class="stat-label">Pending</div>
+
+        <!-- Upcoming Interviews -->
+        <div class="card">
+            <h3>Upcoming interviews</h3>
+            {% for i in upcoming_interviews %}
+                <div style="border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: var(--space-3); margin-bottom: var(--space-3); background: var(--bg-surface);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-1);">
+                        <strong>{{ i.application.job.title }}</strong>
+                        <span class="badge badge-scheduled">Scheduled</span>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: var(--font-small); margin-bottom: var(--space-2);">
+                        {{ i.application.job.company_name }} &bull; {{ i.scheduled_at|date:"M d, Y, h:i A" }} &bull; {{ i.get_mode_display }}
+                    </p>
+                    {% if i.mode == 'online' and i.location_or_link %}
+                        <a href="{{ i.location_or_link }}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Join meeting</a>
+                    {% endif %}
+                </div>
+            {% empty %}
+                <p style="color: var(--text-muted); font-size: var(--font-small); margin: 0;">No upcoming interviews scheduled.</p>
+            {% endfor %}
         </div>
-        <div class="stat-card">
-            <div class="stat-num">{{ stats.shortlisted }}</div>
-            <div class="stat-label">Shortlisted</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-num">{{ stats.rejected }}</div>
-            <div class="stat-label">Rejected</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-num">{{ stats.hired }}</div>
-            <div class="stat-label">Hired</div>
+
+        <!-- Recent Applications -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+                <h3 style="margin: 0;">Recent applications</h3>
+                {% if stats.total > 0 %}
+                    <a href="{% url 'my_applications' %}" style="font-size: var(--font-small);">View all</a>
+                {% endif %}
+            </div>
+
+            {% for app in recent_applications %}
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding: var(--space-3) 0;">
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 2px;">
+                            <a href="{% url 'job_detail' app.job.pk %}">{{ app.job.title }}</a>
+                        </div>
+                        <div style="font-size: var(--font-small); color: var(--text-muted);">
+                            {{ app.job.company_name }} &bull; Applied {{ app.applied_at|date:"M d, Y" }}
+                        </div>
+                    </div>
+                    <span class="badge badge-{{ app.status }}">{{ app.get_status_display }}</span>
+                </div>
+            {% empty %}
+                <p style="color: var(--text-muted); font-size: var(--font-small); margin: 0;">
+                    You have not submitted any job applications yet. <a href="{% url 'job_list' %}">Browse available jobs</a>
+                </p>
+            {% endfor %}
         </div>
     </div>
-        <h3>Upcoming interviews</h3>
-    {% for i in upcoming_interviews %}
-        <div class="card">
-            <strong>{{ i.application.job.title }}</strong> · {{ i.application.job.company_name }}<br>
-            {{ i.scheduled_at|date:"d M Y, h:i A" }} · {{ i.get_mode_display }}
-            {% if i.mode == 'online' %}
-                · <a href="{{ i.location_or_link }}" target="_blank" rel="noopener">Join</a>
-            {% else %}
-                · {{ i.location_or_link }}
-            {% endif %}
-        </div>
-    {% empty %}
-        <p>No upcoming interviews.</p>
-    {% endfor %}
 
-    <h3>Recent applications</h3>
-    {% for app in recent_applications %}
+    <!-- Right Column: Recommended Jobs -->
+    <aside>
         <div class="card">
-            <a href="{% url 'job_detail' app.job.pk %}">{{ app.job.title }}</a>
-            · {{ app.job.company_name }}
-            <span class="badge badge-{{ app.status }}">{{ app.get_status_display }}</span>
-            <br>
-            <small style="color:#777;">Applied on {{ app.applied_at|date:"d M Y" }}</small>
-        </div>
-    {% empty %}
-        <p>You haven't applied for any jobs yet.
-            <a href="{% url 'job_list' %}">Browse jobs</a></p>
-    {% endfor %}
-    {% if stats.total > 5 %}
-        <p><a href="{% url 'my_applications' %}">View all applications →</a></p>
-    {% endif %}
+            <h3>Recommended jobs</h3>
+            <p style="color: var(--text-muted); font-size: var(--font-small); margin-bottom: var(--space-4);">
+                Based on your listed skills and experience
+            </p>
 
-    <h3>Jobs recommended for you</h3>
-    {% for job in recommended_jobs %}
-        <div class="card">
-            <a href="{% url 'job_detail' job.pk %}"><strong>{{ job.title }}</strong></a><br>
-            {{ job.company_name }} · {{ job.location }} · {{ job.get_job_type_display }}<br>
-            <small style="color:#777;">Skills: {{ job.skills_required }}</small>
+            {% for job in recommended_jobs %}
+                <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-3); margin-bottom: var(--space-3);">
+                    <div style="font-weight: 600; margin-bottom: 2px;">
+                        <a href="{% url 'job_detail' job.pk %}">{{ job.title }}</a>
+                    </div>
+                    <div style="font-size: var(--font-small); color: var(--text-secondary); margin-bottom: var(--space-2);">
+                        {{ job.company_name }} &bull; {{ job.location }}
+                    </div>
+                    <div>
+                        {% for skill in job.skills_list|slice:":3" %}
+                            <span class="skill-tag">{{ skill }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% empty %}
+                <p style="color: var(--text-muted); font-size: var(--font-small); margin: 0;">
+                    Add your skills in <a href="{% url 'profile' %}">Profile settings</a> to see personalized recommendations.
+                </p>
+            {% endfor %}
         </div>
-    {% empty %}
-        <p>No recommendations yet. Add your skills in
-            <a href="{% url 'profile' %}">My Profile</a> to see matching jobs.</p>
-    {% endfor %}
+    </aside>
 </div>
 {% endblock %}

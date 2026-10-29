@@ -1,44 +1,67 @@
 {% extends 'base.html' %}
 
-{% block title %}Interviews - FirstHope{% endblock %}
+{% block title %}Interview Pipeline - FirstHope{% endblock %}
 
 {% block content %}
-<div class="container wide">
-    <h2>Interviews</h2>
+<div style="margin-bottom: var(--space-6); display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--space-3);">
+    <div>
+        <h1>Interview pipeline</h1>
+        <p style="color: var(--text-secondary); margin: 0;">Manage upcoming and completed candidate interviews.</p>
+    </div>
+    <div>
+        <a href="{% url 'my_jobs' %}" class="btn btn-secondary btn-sm">View my jobs</a>
+    </div>
+</div>
 
+<div style="display: flex; flex-direction: column; gap: var(--space-4);">
     {% for i in interviews %}
-        <div class="card">
-            <h3 style="margin:0 0 6px;">
-                {{ i.application.candidate.username }}
-                <small style="color:#777;">for {{ i.application.job.title }}</small>
-            </h3>
-            <p style="margin:2px 0;">
-                {{ i.scheduled_at|date:"d M Y, h:i A" }} · {{ i.get_mode_display }}
+        <article class="card" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-3);">
+                <div>
+                    <h3 style="font-size: 18px; margin-bottom: var(--space-1);">
+                        {{ i.application.candidate.username }}
+                        <span style="font-size: var(--font-small); color: var(--text-muted); font-weight: normal;">
+                            for <strong>{{ i.application.job.title }}</strong>
+                        </span>
+                    </h3>
+                    <div style="font-size: var(--font-small); color: var(--text-secondary);">
+                        Date &amp; Time: <strong>{{ i.scheduled_at|date:"l, M d, Y \a\\t h:i A" }}</strong> &bull; Mode: {{ i.get_mode_display }}
+                    </div>
+                </div>
+
                 <span class="badge badge-{{ i.status }}">{{ i.get_status_display }}</span>
-            </p>
-            <p style="margin:2px 0;">
+            </div>
+
+            <div style="font-size: var(--font-small); margin-bottom: var(--space-3);">
                 {% if i.mode == 'online' %}
-                    <a href="{{ i.location_or_link }}" target="_blank" rel="noopener">{{ i.location_or_link }}</a>
+                    <strong>Meeting link:</strong> <a href="{{ i.location_or_link }}" target="_blank" rel="noopener">{{ i.location_or_link }}</a>
                 {% else %}
-                    {{ i.location_or_link }}
+                    <strong>In-person location:</strong> {{ i.location_or_link }}
                 {% endif %}
-            </p>
-            {% if i.notes %}<p style="margin:2px 0; color:#555;">Notes: {{ i.notes }}</p>{% endif %}
+            </div>
+
+            {% if i.notes %}
+                <div style="background: var(--bg-page); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: var(--space-3); font-size: var(--font-small); margin-bottom: var(--space-3);">
+                    <strong>Notes:</strong> {{ i.notes }}
+                </div>
+            {% endif %}
 
             {% if i.status == 'scheduled' %}
-                <form method="post" action="{% url 'update_interview_status' i.pk %}"
-                      style="display:flex; gap:8px; margin-top:8px;">
-                    {% csrf_token %}
-                    <button type="submit" name="status" value="completed" class="btn"
-                            style="background:#27ae60;">Mark Completed</button>
-                    <button type="submit" name="status" value="cancelled" class="btn"
-                            style="background:#c0392b;">Cancel</button>
-                </form>
+                <div style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-3); display: flex; justify-content: flex-end; gap: var(--space-2);">
+                    <form method="post" action="{% url 'update_interview_status' i.pk %}" style="display: inline-flex; gap: var(--space-2);">
+                        {% csrf_token %}
+                        <button type="submit" name="status" value="completed" class="btn btn-secondary btn-sm" style="color: #03543f;">Mark completed</button>
+                        <button type="submit" name="status" value="cancelled" class="btn btn-secondary btn-sm" style="color: #9b1c1c;">Cancel interview</button>
+                    </form>
+                </div>
             {% endif %}
-        </div>
+        </article>
     {% empty %}
-        <p>No interviews scheduled yet. Shortlist a candidate and schedule one from the
-           Applicants page.</p>
+        <div class="card" style="text-align: center; padding: var(--space-8); color: var(--text-muted);">
+            <h3>No interviews scheduled yet</h3>
+            <p style="margin-bottom: var(--space-4);">Shortlist applicants from your job posts to schedule interviews with candidates.</p>
+            <a href="{% url 'my_jobs' %}" class="btn btn-primary btn-sm">Review applicants</a>
+        </div>
     {% endfor %}
 </div>
 {% endblock %}

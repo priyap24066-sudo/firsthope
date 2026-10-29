@@ -1,26 +1,68 @@
 {% extends 'base.html' %}
 
-{% block title %}My Jobs - FirstHope{% endblock %}
+{% block title %}My Posted Jobs - FirstHope{% endblock %}
 
 {% block content %}
-<div class="container wide">
-    <h2>My Posted Jobs</h2>
-    <a href="{% url 'job_create' %}" class="btn">+ Post New Job</a>
-    <br><br>
+<div style="margin-bottom: var(--space-6); display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: var(--space-3);">
+    <div>
+        <h1>My posted jobs</h1>
+        <p style="color: var(--text-secondary); margin: 0;">Manage your active job openings and applicant pipelines.</p>
+    </div>
+    <div>
+        <a href="{% url 'job_create' %}" class="btn btn-primary">+ Post new job</a>
+    </div>
+</div>
 
-    {% for job in jobs %}
-        <div style="border:1px solid #ddd; padding:14px; border-radius:6px; margin-bottom:12px;">
-            <h3 style="margin:0 0 6px;">
-                <a href="{% url 'job_detail' job.pk %}">{{ job.title }}</a>
-                {% if not job.is_active %}<small style="color:#c0392b;">(Closed)</small>{% endif %}
-            </h3>
-            <p style="margin:2px 0;">{{ job.company_name }} · {{ job.location }}</p>
-            <a href="{% url 'job_applicants' job.pk %}"><strong>Applicants ({{ job.applications.count }})</strong></a> |
-            <a href="{% url 'job_edit' job.pk %}">Edit</a> |
-            <a href="{% url 'job_delete' job.pk %}">Delete</a>
-        </div>
-    {% empty %}
-        <p>You haven't posted any jobs yet.</p>
-    {% endfor %}
+<div class="table-responsive">
+    <table>
+        <thead>
+            <tr>
+                <th>Job Title</th>
+                <th>Location</th>
+                <th>Applicants</th>
+                <th>Status</th>
+                <th>Posted Date</th>
+                <th style="text-align: right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in jobs %}
+                <tr>
+                    <td>
+                        <a href="{% url 'job_detail' job.pk %}" style="font-weight: 600;">{{ job.title }}</a>
+                        <div style="font-size: var(--font-small); color: var(--text-muted);">{{ job.company_name }}</div>
+                    </td>
+                    <td>{{ job.location }}</td>
+                    <td>
+                        <a href="{% url 'job_applicants' job.pk %}" class="badge badge-shortlisted">
+                            {{ job.applications.count }} applicant{{ job.applications.count|pluralize }}
+                        </a>
+                    </td>
+                    <td>
+                        {% if job.is_active %}
+                            <span class="badge badge-hired">Active</span>
+                        {% else %}
+                            <span class="badge badge-cancelled">Closed</span>
+                        {% endif %}
+                    </td>
+                    <td style="color: var(--text-muted); font-size: var(--font-small);">{{ job.created_at|date:"M d, Y" }}</td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <a href="{% url 'job_applicants' job.pk %}" class="btn btn-secondary btn-sm">Applicants</a>
+                        <a href="{% url 'job_edit' job.pk %}" class="btn btn-secondary btn-sm">Edit</a>
+                        <a href="{% url 'job_delete' job.pk %}" class="btn btn-secondary btn-sm" style="color: #dc2626;">Delete</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: var(--space-8); color: var(--text-muted);">
+                        You have not posted any jobs yet.
+                        <div style="margin-top: var(--space-3);">
+                            <a href="{% url 'job_create' %}" class="btn btn-primary btn-sm">Post your first job</a>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}

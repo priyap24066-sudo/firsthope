@@ -1,11 +1,13 @@
 from urllib.parse import urlparse
 
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.core.mail import send_mail
 from django.utils import timezone
 from django.utils.html import format_html
 
-from .models import RecruiterProfile, User
+from .models import OTPCode, RecruiterDocument, RecruiterProfile, User
 
 FREE_EMAIL_DOMAINS = {'gmail.com', 'yahoo.com', 'outlook.com'}
 
@@ -47,13 +49,13 @@ def check_recruiter_domain_match(email, website):
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ('Role', {'fields': ('role',)}),
+        ('Role & Verification', {'fields': ('role', 'phone')}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Role', {'fields': ('role',)}),
+        ('Role & Verification', {'fields': ('role', 'phone')}),
     )
-    list_display = ('username', 'email', 'role', 'is_staff')
-    list_filter = UserAdmin.list_filter + ('role',)
+    list_display = ('username', 'email', 'phone', 'role', 'is_active', 'is_staff')
+    list_filter = ('role', 'is_active', 'is_staff')
 
 
 @admin.register(RecruiterProfile)
@@ -99,3 +101,92 @@ class RecruiterProfileAdmin(admin.ModelAdmin):
     @admin.action(description='Unverify selected recruiters')
     def unverify_recruiters(self, request, queryset):
         queryset.update(is_verified=False, verified_on=None)
+
+
+@admin.register(OTPCode)
+class OTPCodeAdmin(admin.ModelAdmin):
+    list_display = ('user', 'channel', 'purpose', 'attempts', 'is_used', 'created_on', 'expires_on')
+    list_filter = ('channel', 'purpose', 'is_used', 'created_on')
+    search_fields = ('user__username', 'user__email')
+
+
+@admin.register(RecruiterDocument)
+class RecruiterDocumentAdmin(admin.ModelAdmin):
+    list_display = ('company_name', 'document_type', 'status', 'file_name', 'file_size_kb', 'uploaded_on')
+    list_filter = ('status', 'document_type', 'uploaded_on')
+    search_fields = ('recruiter__company_name', 'recruiter__user__username', 'file_name')
+    actions = ['approve_documents', 'reject_documents']
+
+    @admin.display(description='Company', ordering='recruiter__company_name')
+    def company_name(self, obj):
+        return obj.recruiter.company_name or obj.recruiter.user.username
+
+    @admin.display(description='Size')
+    def file_size_kb(self, obj):
+        return f"{obj.file_size // 1024} KB"
+
+    @admin.action(description='Approve selected documents')
+    def approve_documents(self, request, queryset):
+        now = timezone.now()
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'FirstHope <noreply@firsthope.com>')
+        for doc in queryset:
+            doc.status = RecruiterDocument.Status.APPROVED
+            doc.reviewed_on = now
+            doc.reviewed_by = request.user
+            doc.save()
+
+            # Approving sets RecruiterProfile.is_verified=True and verified_on=now
+            profile = doc.recruiter
+            profile.is_verified = True
+            profile.verified_on = now
+            profile.save()
+
+            # Email recruiter
+            if profile.user and profile.user.email:
+                send_mail(
+                    subject='FirstHope - Company Document Approved',
+                    message=(
+                        f"Hello {profile.user.username},\n\n"
+                        f"Your verification document ({doc.get_document_type_display()}) has been approved by our admin team.\n"
+                        f"Your recruiter account is now verified and you can post jobs on FirstHope.\n\n"
+                        f"- The FirstHope Team"
+                    ),
+                    from_email=from_email,
+                    recipient_list=[profile.user.email],
+                    fail_silently=True,
+                )
+
+    @admin.action(description='Reject selected documents')
+    def reject_documents(self, request, queryset):
+        now = timezone.now()
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'FirstHope <noreply@firsthope.com>')
+        for doc in queryset:
+            note = doc.admin_note or "Document does not meet verification requirements."
+            doc.status = RecruiterDocument.Status.REJECTED
+            doc.admin_note = note
+            doc.reviewed_on = now
+            doc.reviewed_by = request.user
+            doc.save()
+
+            # If all of a recruiter's documents are rejected, is_verified goes back to False
+            profile = doc.recruiter
+            approved_exists = profile.documents.filter(status=RecruiterDocument.Status.APPROVED).exists()
+            if not approved_exists:
+                profile.is_verified = False
+                profile.save()
+
+            # Email recruiter
+            if profile.user and profile.user.email:
+                send_mail(
+                    subject='FirstHope - Company Document Status Update',
+                    message=(
+                        f"Hello {profile.user.username},\n\n"
+                        f"Your verification document ({doc.get_document_type_display()}) was reviewed and rejected.\n"
+                        f"Reason: {note}\n\n"
+                        f"Please submit a valid proof document from your Company Verification page.\n\n"
+                        f"- The FirstHope Team"
+                    ),
+                    from_email=from_email,
+                    recipient_list=[profile.user.email],
+                    fail_silently=True,
+                )

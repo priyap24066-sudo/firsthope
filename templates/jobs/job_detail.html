@@ -1,64 +1,127 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ job.title }} - FirstHope{% endblock %}
+{% block title %}{{ job.title }} at {{ job.company_name }} - FirstHope{% endblock %}
 
 {% block content %}
-<div class="container wide">
-    <h2>{{ job.title }}</h2>
-    <p>
-        <strong>{{ job.company_name }}</strong>
-        {% if job.recruiter.recruiter_profile.is_verified %}
-            <span class="badge badge-verified">Verified</span>
+<div style="margin-bottom: var(--space-4);">
+    <a href="{% url 'job_list' %}" style="font-size: var(--font-small); color: var(--text-muted);">&larr; Back to all jobs</a>
+</div>
+
+<div class="two-col-layout">
+    <!-- Main Column -->
+    <article class="card">
+        <header style="margin-bottom: var(--space-6); border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-4);">
+            <h1 style="font-size: 24px; margin-bottom: var(--space-2);">{{ job.title }}</h1>
+            <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3);">
+                <span style="font-size: var(--font-subtitle); font-weight: 600; color: var(--text-secondary);">{{ job.company_name }}</span>
+                {% if job.recruiter.recruiter_profile.is_verified %}
+                    <span class="badge badge-verified">Verified</span>
+                {% endif %}
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: var(--space-3); font-size: var(--font-small); color: var(--text-muted);">
+                <span>{{ job.location }}</span>
+                <span>&bull;</span>
+                <span>{{ job.get_job_type_display }}</span>
+                {% if job.salary %}
+                    <span>&bull;</span>
+                    <span>{{ job.salary }}</span>
+                {% endif %}
+                <span>&bull;</span>
+                <span>Posted {{ job.created_at|date:"M d, Y" }}</span>
+            </div>
+        </header>
+
+        <section style="margin-bottom: var(--space-6);">
+            <h3>Skills required</h3>
+            <div>
+                {% for skill in job.skills_list %}
+                    <span class="skill-tag">{{ skill }}</span>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section style="margin-bottom: var(--space-6);">
+            <h3>Job description</h3>
+            <div style="color: var(--text-secondary); line-height: 1.6; white-space: pre-line;">
+                {{ job.description }}
+            </div>
+        </section>
+
+        {% if user == job.recruiter %}
+            <div style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-4); display: flex; gap: var(--space-3);">
+                <a href="{% url 'job_edit' job.pk %}" class="btn btn-secondary btn-sm">Edit job post</a>
+                <a href="{% url 'job_applicants' job.pk %}" class="btn btn-primary btn-sm">View applicants</a>
+            </div>
         {% endif %}
-        · {{ job.location }}
-    </p>
-    <p>{{ job.get_job_type_display }}{% if job.salary %} · {{ job.salary }}{% endif %}</p>
+    </article>
 
-    <p><strong>Skills required:</strong>
-        {% for skill in job.skills_list %}
-            <span style="background:#e3ecf7; padding:3px 8px; border-radius:10px; margin-right:4px;">{{ skill }}</span>
-        {% endfor %}
-    </p>
+    <!-- Side Column: Sticky Action Card -->
+    <aside class="sticky-side">
+        <div class="card">
+            <h3 style="font-size: var(--font-subtitle); margin-bottom: var(--space-3);">Application summary</h3>
+            
+            <div style="font-size: var(--font-small); color: var(--text-secondary); margin-bottom: var(--space-4);">
+                <div style="margin-bottom: var(--space-2);">
+                    <strong style="color: var(--text-primary);">Role:</strong> {{ job.title }}
+                </div>
+                <div style="margin-bottom: var(--space-2);">
+                    <strong style="color: var(--text-primary);">Type:</strong> {{ job.get_job_type_display }}
+                </div>
+                <div style="margin-bottom: var(--space-2);">
+                    <strong style="color: var(--text-primary);">Location:</strong> {{ job.location }}
+                </div>
+                {% if job.salary %}
+                    <div style="margin-bottom: var(--space-2);">
+                        <strong style="color: var(--text-primary);">Compensation:</strong> {{ job.salary }}
+                    </div>
+                {% endif %}
+            </div>
 
-    <h3>Description</h3>
-    <p>{{ job.description|linebreaksbr }}</p>
-
-    {% if not job.is_active %}
-        <p style="color:#c0392b;">This job is currently closed.</p>
-    {% endif %}
-
-    {% if job.is_active %}
-        {% if not user.is_authenticated %}
-            <p><a href="{% url 'login' %}?next={{ request.path }}" class="btn">Login to Apply</a></p>
-        {% elif user.role == 'candidate' %}
-            {% if has_applied %}
-                <p style="color:#27ae60;"><strong>✓ You have already applied for this job.</strong></p>
+            {% if not job.is_active %}
+                <div class="alert alert-warning" style="margin-bottom: var(--space-4);">
+                    This job position is closed and no longer accepting applications.
+                </div>
             {% else %}
-                <p><a href="{% url 'apply_job' job.pk %}" class="btn">Apply Now</a></p>
+                {% if not user.is_authenticated %}
+                    <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-primary" style="width: 100%; margin-bottom: var(--space-3);">
+                        Sign in to apply
+                    </a>
+                    <a href="{% url 'register' %}" class="btn btn-secondary" style="width: 100%;">Create account</a>
+                {% elif user.role == 'candidate' %}
+                    {% if has_applied %}
+                        <div class="badge badge-hired" style="width: 100%; justify-content: center; padding: var(--space-3); font-size: var(--font-small); margin-bottom: var(--space-4);">
+                            Application submitted
+                        </div>
+                    {% else %}
+                        <a href="{% url 'apply_job' job.pk %}" class="btn btn-primary" style="width: 100%; margin-bottom: var(--space-4);">
+                            Apply for this job
+                        </a>
+                    {% endif %}
+                {% endif %}
             {% endif %}
-        {% endif %}
-    {% endif %}
 
-    {% if user == job.recruiter %}
-        <a href="{% url 'job_edit' job.pk %}" class="btn">Edit</a>
-    {% endif %}
-    <a href="{% url 'job_list' %}">← Back to jobs</a>
-
-    {% if user.is_authenticated and user.role == 'candidate' and job.is_active %}
-        <hr style="margin:28px 0 20px; border:none; border-top:1px solid #ddd;">
-        <div>
-            <h4 style="margin:0 0 10px;">Report this job</h4>
-            {% if has_reported %}
-                <p style="color:#777;">You have already reported this job.</p>
-            {% else %}
-                <form method="post" action="{% url 'report_job' job.pk %}">
-                    {% csrf_token %}
-                    <p style="margin:4px 0 8px; font-size:14px; color:#555;">Notice something fraudulent, suspicious, or inappropriate? Report this listing to our admin team:</p>
-                    <textarea name="reason" rows="3" required placeholder="Describe the issue with this job posting..." style="width:100%; padding:8px; margin:4px 0 12px; box-sizing:border-box; border:1px solid #ccc; border-radius:6px;"></textarea>
-                    <button type="submit" class="btn" style="background:#c0392b;">Report this job</button>
-                </form>
+            <!-- Report this job -->
+            {% if user.is_authenticated and user.role == 'candidate' and job.is_active %}
+                <div style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-4); margin-top: var(--space-2);">
+                    <h4 style="font-size: var(--font-small); color: var(--text-muted); margin-bottom: var(--space-2);">
+                        Report listing
+                    </h4>
+                    {% if has_reported %}
+                        <p style="font-size: var(--font-small); color: var(--text-muted); margin: 0;">
+                            You have reported this job post. Our admin team will investigate.
+                        </p>
+                    {% else %}
+                        <form method="post" action="{% url 'report_job' job.pk %}">
+                            {% csrf_token %}
+                            <div class="form-group" style="margin-bottom: var(--space-2);">
+                                <textarea name="reason" rows="2" required placeholder="Describe suspicious activity, fee demands, or inaccuracies..." style="font-size: var(--font-small);"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-danger btn-sm" style="width: 100%;">Report this job</button>
+                        </form>
+                    {% endif %}
+                </div>
             {% endif %}
         </div>
-    {% endif %}
+    </aside>
 </div>
 {% endblock %}

@@ -3,13 +3,101 @@
 {% block title %}{{ heading }} - FirstHope{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2>{{ heading }}</h2>
+<div class="card" style="max-width: 760px; margin: 0 auto; padding: var(--space-6);">
+    <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-3); margin-bottom: var(--space-6);">
+        <h1 style="font-size: 24px; margin-bottom: var(--space-1);">{{ heading }}</h1>
+        <p style="color: var(--text-secondary); margin: 0; font-size: var(--font-small);">
+            Provide accurate job specifications to attract qualified candidates.
+        </p>
+    </div>
+
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn">Save Job</button>
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <!-- Section 1: Basics -->
+        <fieldset style="border: none; padding: 0; margin: 0 0 var(--space-6);">
+            <legend style="font-size: var(--font-subtitle); font-weight: 600; color: var(--brand-navy); margin-bottom: var(--space-3); border-bottom: 1px solid var(--border-subtle); width: 100%; padding-bottom: var(--space-2);">
+                1. Basic information
+            </legend>
+
+            <div class="form-group">
+                <label for="{{ form.title.id_for_label }}">Job title <span style="color:#dc2626;">*</span></label>
+                {{ form.title }}
+                {% if form.title.errors %}<div class="errorlist">{{ form.title.errors }}</div>{% endif %}
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+                <div class="form-group">
+                    <label for="{{ form.company_name.id_for_label }}">Company name <span style="color:#dc2626;">*</span></label>
+                    {{ form.company_name }}
+                    {% if form.company_name.errors %}<div class="errorlist">{{ form.company_name.errors }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.location.id_for_label }}">Job location <span style="color:#dc2626;">*</span></label>
+                    {{ form.location }}
+                    {% if form.location.errors %}<div class="errorlist">{{ form.location.errors }}</div>{% endif %}
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- Section 2: Details -->
+        <fieldset style="border: none; padding: 0; margin: 0 0 var(--space-6);">
+            <legend style="font-size: var(--font-subtitle); font-weight: 600; color: var(--brand-navy); margin-bottom: var(--space-3); border-bottom: 1px solid var(--border-subtle); width: 100%; padding-bottom: var(--space-2);">
+                2. Position details &amp; requirements
+            </legend>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
+                <div class="form-group">
+                    <label for="{{ form.job_type.id_for_label }}">Employment type <span style="color:#dc2626;">*</span></label>
+                    {{ form.job_type }}
+                    {% if form.job_type.errors %}<div class="errorlist">{{ form.job_type.errors }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.salary.id_for_label }}">Compensation / Salary</label>
+                    {{ form.salary }}
+                    <span class="helptext">{{ form.salary.help_text }}</span>
+                    {% if form.salary.errors %}<div class="errorlist">{{ form.salary.errors }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.skills_required.id_for_label }}">Skills required <span style="color:#dc2626;">*</span></label>
+                {{ form.skills_required }}
+                <span class="helptext">{{ form.skills_required.help_text }}</span>
+                {% if form.skills_required.errors %}<div class="errorlist">{{ form.skills_required.errors }}</div>{% endif %}
+            </div>
+        </fieldset>
+
+        <!-- Section 3: Description -->
+        <fieldset style="border: none; padding: 0; margin: 0 0 var(--space-6);">
+            <legend style="font-size: var(--font-subtitle); font-weight: 600; color: var(--brand-navy); margin-bottom: var(--space-3); border-bottom: 1px solid var(--border-subtle); width: 100%; padding-bottom: var(--space-2);">
+                3. Role description
+            </legend>
+
+            <div class="form-group">
+                <label for="{{ form.description.id_for_label }}">Full description <span style="color:#dc2626;">*</span></label>
+                {{ form.description }}
+                {% if form.description.errors %}<div class="errorlist">{{ form.description.errors }}</div>{% endif %}
+            </div>
+
+            {% if form.is_active %}
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer; font-weight: 500;">
+                        {{ form.is_active }}
+                        <span>Active listing (visible to applicants)</span>
+                    </label>
+                </div>
+            {% endif %}
+        </fieldset>
+
+        <div style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-4); display: flex; justify-content: flex-end; gap: var(--space-3);">
+            <a href="{% url 'my_jobs' %}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save and publish</button>
+        </div>
     </form>
-    <p><a href="{% url 'my_jobs' %}">Cancel</a></p>
 </div>
 {% endblock %}

@@ -3,16 +3,54 @@
 {% block title %}Schedule Interview - FirstHope{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2>Schedule Interview</h2>
-    <p><strong>{{ application.candidate.username }}</strong> for
-       <strong>{{ application.job.title }}</strong></p>
+<div class="container-narrow" style="max-width: 560px;">
+    <div style="margin-bottom: var(--space-4);">
+        <a href="{% url 'job_applicants' application.job.pk %}" style="font-size: var(--font-small); color: var(--text-muted);">&larr; Back to applicants</a>
+    </div>
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn">Schedule</button>
-    </form>
-    <p><a href="{% url 'job_applicants' application.job.pk %}">Cancel</a></p>
+    <div class="card" style="padding: var(--space-6);">
+        <h1 style="font-size: 22px; margin-bottom: var(--space-1);">Schedule candidate interview</h1>
+        <p style="color: var(--text-secondary); font-size: var(--font-small); margin-bottom: var(--space-6);">
+            Candidate: <strong>{{ application.candidate.username }}</strong> &bull; Role: <strong>{{ application.job.title }}</strong>
+        </p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="{{ form.scheduled_at.id_for_label }}">Date and time <span style="color:#dc2626;">*</span></label>
+                {{ form.scheduled_at }}
+                {% if form.scheduled_at.errors %}<div class="errorlist">{{ form.scheduled_at.errors }}</div>{% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.mode.id_for_label }}">Interview mode <span style="color:#dc2626;">*</span></label>
+                {{ form.mode }}
+                {% if form.mode.errors %}<div class="errorlist">{{ form.mode.errors }}</div>{% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.location_or_link.id_for_label }}">Meeting link or office address <span style="color:#dc2626;">*</span></label>
+                {{ form.location_or_link }}
+                <span class="helptext">Google Meet, Zoom link or physical street address.</span>
+                {% if form.location_or_link.errors %}<div class="errorlist">{{ form.location_or_link.errors }}</div>{% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.notes.id_for_label }}">Notes or preparation instructions <span style="font-weight: normal; color: var(--text-muted);">(Optional)</span></label>
+                {{ form.notes }}
+                {% if form.notes.errors %}<div class="errorlist">{{ form.notes.errors }}</div>{% endif %}
+            </div>
+
+            <div style="display: flex; gap: var(--space-3); margin-top: var(--space-6);">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Confirm schedule</button>
+                <a href="{% url 'job_applicants' application.job.pk %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

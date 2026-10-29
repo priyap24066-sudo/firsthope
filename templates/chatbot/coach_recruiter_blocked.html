@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Coach - FirstHope{% endblock %}
+
+{% block content %}
+<div class="container-narrow" style="text-align: center; margin-top: var(--space-8);">
+    <div class="card" style="padding: var(--space-8);">
+        <h2 style="margin-bottom: var(--space-3); color: var(--brand-navy);">Candidate access only</h2>
+        <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: var(--space-6);">
+            The AI Coach is exclusively provided for candidate career development, including interactive mock interviews, resume structuring, and English communication practice.
+        </p>
+        <div style="display: flex; justify-content: center; gap: var(--space-3);">
+            <a href="{% url 'dashboard' %}" class="btn btn-primary">Return to Recruiter Dashboard</a>
+            <a href="{% url 'my_jobs' %}" class="btn btn-secondary">Manage My Jobs</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Verify Verification Code - FirstHope{% endblock %}
+
+{% block content %}
+<div class="container-narrow">
+    <div class="card" style="padding: var(--space-6);">
+        <h2 style="margin-bottom: var(--space-2); text-align: center;">Enter verification code</h2>
+        <p style="color: var(--text-secondary); font-size: var(--font-small); text-align: center; margin-bottom: var(--space-6);">
+            We sent a 6-digit verification code to <strong>{{ target }}</strong>.
+            The code expires in 10 minutes.
+        </p>
+
+        <form method="post" action="{% url 'verify_otp' %}">
+            {% csrf_token %}
+
+            <div class="form-group" style="text-align: center;">
+                <label for="id_code" style="margin-bottom: var(--space-2);">6-digit code</label>
+                <input type="text" id="id_code" name="code" maxlength="6" minlength="6" required autofocus
+                       style="font-size: 24px; font-weight: 700; letter-spacing: 8px; text-align: center; max-width: 240px; margin: 0 auto; height: 50px;"
+                       placeholder="------" autocomplete="one-time-code" inputmode="numeric">
+                {% if form.code.errors %}<div class="errorlist">{{ form.code.errors }}</div>{% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: var(--space-4);">
+                Verify and continue
+            </button>
+        </form>
+
+        <div style="margin-top: var(--space-6); border-top: 1px solid var(--border-subtle); padding-top: var(--space-4); text-align: center; font-size: var(--font-small);">
+            <p style="color: var(--text-muted); margin-bottom: var(--space-2);">
+                Did not receive the code?
+            </p>
+            <div style="display: flex; justify-content: center; gap: var(--space-4); flex-wrap: wrap;">
+                <a href="{% url 'resend_otp' %}" style="font-weight: 500;">Resend email code</a>
+                {% if sms_available %}
+                    <a href="{% url 'resend_otp' %}?channel=sms" style="font-weight: 500;">Send via SMS instead</a>
+                {% endif %}
+            </div>
+            <div style="margin-top: var(--space-4);">
+                <a href="{% url 'login' %}" style="color: var(--text-muted);">Back to sign in</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

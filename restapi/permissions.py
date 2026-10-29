@@ -1,5 +1,4 @@
 from rest_framework.permissions import BasePermission
-
 from accounts.models import User
 
 
@@ -10,7 +9,7 @@ class IsRecruiter(BasePermission):
 
 
 class IsVerifiedRecruiter(BasePermission):
-    message = "Your company is pending verification by the admin."
+    message = "Upload your company proof to start posting jobs"
 
     def has_permission(self, request, view):
         user = request.user
