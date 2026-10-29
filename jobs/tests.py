@@ -97,17 +97,17 @@ class JobTests(TestCase):
         unverified_rec = make_user('unver_rec', 'recruiter', verified=False)
         self.client.login(username='unver_rec', password=PASSWORD)
 
-        # GET request redirects to dashboard
+        # Unverified recruiters are sent to submit proof documents.
         response = self.client.get(reverse('job_create'), follow=True)
-        self.assertRedirects(response, reverse('dashboard'))
-        self.assertContains(response, 'Your company is pending verification by the admin.')
+        self.assertRedirects(response, reverse('company_verification'))
+        self.assertContains(response, 'Upload your company proof to start posting jobs')
 
         # POST request also blocked
         response = self.client.post(reverse('job_create'), {
             'title': 'Blocked Job', 'company_name': 'FakeCo', 'location': 'Nowhere',
             'job_type': 'full_time', 'skills_required': 'Python', 'description': 'Fake',
         }, follow=True)
-        self.assertRedirects(response, reverse('dashboard'))
+        self.assertRedirects(response, reverse('company_verification'))
         self.assertFalse(Job.objects.filter(title='Blocked Job').exists())
 
     def test_unverified_recruiter_jobs_hidden_from_public_list_and_detail(self):

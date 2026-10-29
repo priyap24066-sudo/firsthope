@@ -90,6 +90,10 @@
                     Submit proof for review
                 </button>
             </form>
+        {% elif not has_details %}
+            <div class="alert alert-info">
+                Complete your company profile before uploading business proof.
+            </div>
         {% else %}
             <div class="alert alert-info">
                 You have reached the maximum of 3 uploaded documents. If your documents were rejected or you need assistance, please contact admin support.

@@ -185,6 +185,15 @@ def login_view(request):
             matched_user = User.objects.filter(email__iexact=identifier).first()
             if matched_user:
                 user = authenticate(request, username=matched_user.username, password=password)
+        if not user:
+            pending_users = User.objects.filter(is_active=False)
+            if '@' in identifier:
+                pending_users = pending_users.filter(email__iexact=identifier)
+            else:
+                pending_users = pending_users.filter(username=identifier)
+            pending_user = pending_users.first()
+            if pending_user and pending_user.check_password(password):
+                user = pending_user
 
         if user is not None:
             # Check if user registered but never verified OTP
@@ -262,8 +271,12 @@ def company_verification(request):
 
     profile_obj, _ = RecruiterProfile.objects.get_or_create(user=request.user)
     documents = profile_obj.documents.all().order_by('-uploaded_on')
+    has_details = profile_obj.has_required_details()
 
     if request.method == 'POST':
+        if not has_details:
+            messages.error(request, 'Complete your company profile before uploading verification documents.')
+            return redirect('company_verification')
         if documents.count() >= 3:
             messages.error(request, 'Maximum 3 documents allowed. Please wait for review or contact support.')
             return redirect('company_verification')
@@ -288,13 +301,11 @@ def company_verification(request):
     else:
         form = RecruiterDocumentUploadForm()
 
-    has_details = profile_obj.has_required_details()
-
     context = {
         'profile': profile_obj,
         'documents': documents,
         'form': form,
-        'can_upload': documents.count() < 3,
+        'can_upload': documents.count() < 3 and has_details,
         'has_details': has_details,
     }
     return render(request, 'accounts/company_verification.html', context)

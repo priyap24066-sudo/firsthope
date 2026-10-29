@@ -122,7 +122,7 @@ class ApiTests(APITestCase):
             'description': 'Blocked API description',
         }, format='json')
         self.assertEqual(response.status_code, 403)
-        self.assertEqual(response.data.get('detail'), 'Your company is pending verification by the admin.')
+        self.assertEqual(response.data.get('detail'), 'Upload your company proof to start posting jobs')
 
     def test_unverified_recruiter_jobs_hidden_from_public_api(self):
         unverified_rec = make_user('unver_api_rec2', 'recruiter', verified=False)

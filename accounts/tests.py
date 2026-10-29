@@ -1,9 +1,11 @@
 from django.contrib.admin.sites import AdminSite
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
+from unittest.mock import patch
 
 from .admin import RecruiterProfileAdmin, check_recruiter_domain_match
-from .models import CandidateProfile, RecruiterProfile, User
+from .models import CandidateProfile, RecruiterDocument, RecruiterProfile, User
 
 PASSWORD = 'Str0ng!Pass#2026'
 
@@ -38,6 +40,43 @@ class RegistrationTests(TestCase):
     def test_profile_requires_login(self):
         response = self.client.get(reverse('profile'))
         self.assertEqual(response.status_code, 302)
+
+    @patch('accounts.views.send_email_otp')
+    def test_inactive_user_can_resume_registration_verification_from_login(self, send_otp):
+        self.register('pending_registration', 'candidate')
+        user = User.objects.get(username='pending_registration')
+        self.assertFalse(user.is_active)
+        registration_code = send_otp.call_args.args[1]
+
+        response = self.client.post(reverse('login'), {
+            'username': user.username,
+            'password': PASSWORD,
+        })
+        self.assertRedirects(response, reverse('verify_otp'))
+        self.assertEqual(send_otp.call_count, 1)
+
+        response = self.client.post(reverse('verify_otp'), {'code': registration_code})
+        self.assertRedirects(response, reverse('dashboard'))
+        user.refresh_from_db()
+        self.assertTrue(user.is_active)
+
+    @patch('accounts.views.send_email_otp')
+    def test_active_user_must_verify_login_otp(self, send_otp):
+        user = User.objects.create_user(
+            username='otp_login', email='otp_login@example.com', password=PASSWORD,
+        )
+        response = self.client.post(reverse('login'), {
+            'username': user.username,
+            'password': PASSWORD,
+        })
+        self.assertRedirects(response, reverse('verify_otp'))
+        self.assertEqual(send_otp.call_args.kwargs['purpose'], 'login')
+
+        response = self.client.post(
+            reverse('verify_otp'),
+            {'code': send_otp.call_args.args[1]},
+        )
+        self.assertRedirects(response, reverse('dashboard'))
 
 
 class RecruiterVerificationTests(TestCase):
@@ -84,6 +123,8 @@ class RecruiterVerificationTests(TestCase):
         response = self.client.post(reverse('profile'), {
             'company_name': 'Beta Tech',
             'company_website': 'https://betatech.com',
+            'company_email': 'hr@betatech.com',
+            'address': 'Chennai, Tamil Nadu',
             'location': 'Chennai',
             'designation': 'HR Lead',
             'about_company': 'Legit Beta',
@@ -117,6 +158,8 @@ class RecruiterVerificationTests(TestCase):
         response = self.client.post(reverse('profile'), {
             'company_name': 'New Tech',
             'company_website': 'https://newtech.io',
+            'company_email': 'hr@newtech.io',
+            'address': 'Chennai, Tamil Nadu',
             'location': 'Chennai',
         })
         self.assertEqual(response.status_code, 302)
@@ -164,3 +207,54 @@ class RecruiterVerificationTests(TestCase):
         p1.refresh_from_db()
         self.assertFalse(p1.is_verified)
         self.assertIsNone(p1.verified_on)
+
+
+class RecruiterDocumentUploadTests(TestCase):
+    def setUp(self):
+        self.recruiter = User.objects.create_user(
+            username='document_recruiter',
+            email='hr@documents.example',
+            password=PASSWORD,
+            role=User.Role.RECRUITER,
+        )
+        self.client.force_login(self.recruiter)
+
+    def test_document_upload_requires_complete_company_details(self):
+        upload = SimpleUploadedFile(
+            'registration.pdf',
+            b'%PDF-1.4 test document',
+            content_type='application/pdf',
+        )
+
+        response = self.client.post(reverse('company_verification'), {
+            'document_type': RecruiterDocument.DocType.REGISTRATION,
+            'description': '',
+            'file': upload,
+        })
+
+        self.assertRedirects(response, reverse('company_verification'))
+        self.assertFalse(RecruiterDocument.objects.exists())
+
+    def test_recruiter_can_upload_proof_after_completing_company_details(self):
+        profile = self.recruiter.recruiter_profile
+        profile.company_name = 'Document Company'
+        profile.company_website = 'https://documents.example'
+        profile.company_email = 'hr@documents.example'
+        profile.address = '123 Main Street, Chennai'
+        profile.save()
+        upload = SimpleUploadedFile(
+            'registration.pdf',
+            b'%PDF-1.4 test document',
+            content_type='application/pdf',
+        )
+
+        response = self.client.post(reverse('company_verification'), {
+            'document_type': RecruiterDocument.DocType.REGISTRATION,
+            'description': '',
+            'file': upload,
+        })
+
+        self.assertRedirects(response, reverse('company_verification'))
+        document = RecruiterDocument.objects.get(recruiter=profile)
+        self.assertEqual(document.status, RecruiterDocument.Status.PENDING)
+        self.assertEqual(document.file_data, b'%PDF-1.4 test document')
