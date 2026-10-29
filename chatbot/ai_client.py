@@ -1,8 +1,14 @@
 import logging
 import os
+
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+CONFIGURATION_ERROR = (
+    "AI Coach is not configured. Please set the GEMINI_API_KEY environment variable."
+)
+RATE_LIMIT_ERROR = "AI Coach is busy, please try again in a minute."
 
 SYSTEM_PROMPTS = {
     'resume': (
@@ -50,59 +56,71 @@ def build_system_prompt(mode, user=None):
             f"- Education: {p.education or 'Not specified'}\n"
             f"- Skills: {p.skills or 'Not specified'}\n"
             f"- Experience: {p.experience_years} years\n"
-            f"- About: {p.about or 'Not specified'}\n"
         )
         base += candidate_context
     return base
 
 
 def get_ai_client():
-    api_key = getattr(settings, 'ANTHROPIC_API_KEY', '') or os.environ.get('ANTHROPIC_API_KEY', '')
+    api_key = os.environ.get('GEMINI_API_KEY') or getattr(settings, 'GEMINI_API_KEY', '')
     if not api_key:
         return None
     try:
-        import anthropic
-        return anthropic.Anthropic(api_key=api_key, timeout=30.0)
+        from google import genai
+        from google.genai import types
+
+        return genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(timeout=30000),
+        )
     except Exception as e:
-        logger.error("Failed to initialize Anthropic client: %s", type(e).__name__)
+        logger.error("Failed to initialize Gemini client: %s", type(e).__name__)
         return None
 
 
 def generate_chat_reply(mode, user_message, chat_history, user=None):
     """
-    Calls the Anthropic API with system prompt and last 10 messages context.
+    Calls the Gemini API with system prompt and last 10 messages context.
     Returns (success: bool, reply_text: str)
     """
-    api_key = getattr(settings, 'ANTHROPIC_API_KEY', '') or os.environ.get('ANTHROPIC_API_KEY', '')
+    api_key = os.environ.get('GEMINI_API_KEY') or getattr(settings, 'GEMINI_API_KEY', '')
     if not api_key:
-        return False, "AI Coach is not configured. Please set the ANTHROPIC_API_KEY environment variable."
+        return False, CONFIGURATION_ERROR
 
     client = get_ai_client()
     if not client:
         return False, "AI Coach service is currently unavailable. Please verify API configuration."
 
     system_prompt = build_system_prompt(mode, user=user)
-    model = getattr(settings, 'AI_MODEL', 'claude-3-5-sonnet-latest')
+    model = os.environ.get('AI_MODEL') or getattr(
+        settings, 'AI_MODEL', 'gemini-2.5-flash-lite',
+    )
 
-    # Build last 10 messages context
-    formatted_messages = []
+    contents = []
     recent_history = list(chat_history)[-10:]
     for msg in recent_history:
-        role = 'user' if msg.role == 'user' else 'assistant'
-        formatted_messages.append({'role': role, 'content': msg.content})
+        role = 'user' if msg.role == 'user' else 'model'
+        contents.append({'role': role, 'parts': [{'text': msg.content}]})
 
-    # Add the current user message
-    formatted_messages.append({'role': 'user', 'content': user_message})
+    contents.append({'role': 'user', 'parts': [{'text': user_message}]})
 
     try:
-        response = client.messages.create(
+        response = client.models.generate_content(
             model=model,
-            max_tokens=700,
-            system=system_prompt,
-            messages=formatted_messages,
+            contents=contents,
+            config={
+                'system_instruction': system_prompt,
+                'max_output_tokens': 700,
+            },
         )
-        reply = "".join(block.text for block in response.content if hasattr(block, 'text'))
-        return True, reply.strip()
-    except Exception as e:
-        logger.error("AI Coach API call failed: %s", type(e).__name__)
+        return True, (response.text or '').strip()
+    except Exception as error:
+        if (
+            getattr(error, 'code', None) == 429
+            or getattr(error, 'status_code', None) == 429
+            or getattr(getattr(error, 'response', None), 'status_code', None) == 429
+        ):
+            logger.warning("Gemini rate limit reached: %s", type(error).__name__)
+            return False, RATE_LIMIT_ERROR
+        logger.error("Gemini API call failed: %s", type(error).__name__)
         return False, "I'm having trouble connecting to the AI Coach right now. Please try again in a moment."

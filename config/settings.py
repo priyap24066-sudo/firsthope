@@ -195,6 +195,6 @@ LOGIN_OTP_REQUIRED = os.environ.get('LOGIN_OTP_REQUIRED', 'True').lower() in ('t
 SMS_PROVIDER = os.environ.get('SMS_PROVIDER', '')
 
 # AI Coach settings
-ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
-AI_MODEL = os.environ.get('AI_MODEL', 'claude-3-5-sonnet-latest')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+AI_MODEL = os.environ.get('AI_MODEL', 'gemini-2.5-flash-lite')
 AI_DAILY_LIMIT = int(os.environ.get('AI_DAILY_LIMIT', 30))
