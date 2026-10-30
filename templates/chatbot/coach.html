@@ -15,14 +15,14 @@
         </div>
 
         <div class="coach-header-right">
-            <span class="coach-remaining-text" id="remaining-count" aria-live="polite">
-                {{ remaining_messages }} of {{ daily_limit }} messages remaining today
-            </span>
             <form id="new-chat-form" method="post" action="{% url 'coach_reset' %}" style="margin: 0;">
                 {% csrf_token %}
                 <input type="hidden" name="mode" value="{{ mode }}">
                 <button type="submit" class="btn btn-outline btn-sm">New chat</button>
             </form>
+            <span class="coach-remaining-text" id="remaining-count" aria-live="polite">
+                {{ remaining_messages }} of {{ daily_limit }} messages remaining today
+            </span>
         </div>
     </header>
 
@@ -45,14 +45,14 @@
             {% else %}
                 <article class="chat-row chat-row-{{ message.role }}" data-role="{{ message.role }}">
                     <div class="chat-avatar chat-avatar-{{ message.role }}" aria-hidden="true">
-                        {% if message.role == 'user' %}{{ user.username|slice:":1"|upper }}{% else %}AI{% endif %}
+                        {% if message.role == 'user' %}S{% else %}AI{% endif %}
                     </div>
                     <div class="chat-bubble-container">
                         <div class="chat-bubble chat-bubble-{{ message.role }}">
                             <div class="message-content" data-raw="{{ message.content }}">{{ message.content }}</div>
+                            <span class="chat-timestamp">{{ message.created_on|date:"h:i A" }}</span>
                         </div>
                         <div class="chat-actions">
-                            <span class="chat-timestamp">{{ message.created_on|date:"h:i A" }}</span>
                             {% if message.role == 'assistant' %}
                                 <button type="button" class="copy-button" aria-label="Copy reply">Copy</button>
                             {% endif %}
@@ -70,9 +70,9 @@
                 {% else %}English Practice{% endif %}
             </div>
             <p class="coach-empty-desc">
-                {% if mode == 'resume' %}Generate strong bullet points, review structure, or tailor your resume for a job.
-                {% elif mode == 'interview' %}Practice behavioral questions, technical scenarios, and structured answers.
-                {% else %}Practice spoken and written professional English for workplace communication.{% endif %}
+                {% if mode == 'resume' %}Build, review, and tailor your resume.
+                {% elif mode == 'interview' %}Practice interview questions and structured answers.
+                {% else %}Improve your professional English.{% endif %}
             </p>
             <div class="prompt-chips" role="group" aria-label="Example prompts">
                 {% if mode == 'resume' %}
@@ -128,12 +128,7 @@
             <div class="coach-input-wrapper">
                 <label for="chat-message" class="visually-hidden" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">Type your message</label>
                 <textarea id="chat-message" name="message" class="coach-textarea" rows="1" maxlength="500" required placeholder="Type your message (Enter sends, Shift+Enter for new line)"></textarea>
-                <button type="submit" class="coach-send-btn" id="send-button" aria-label="Send message">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                    </svg>
-                </button>
+                <button type="submit" class="coach-send-btn" id="send-button">Send</button>
             </div>
             <div class="coach-input-footer">
                 <span class="coach-counter" id="char-counter"><span id="character-count">0</span>/500</span>
@@ -159,7 +154,7 @@
     const remainingCount = document.getElementById('remaining-count');
     const emptyState = document.getElementById('empty-state');
     const mode = form.elements.mode ? form.elements.mode.value : 'resume';
-    const userInitial = "{{ user.username|slice:':1'|upper|default:'U' }}";
+    const userInitial = 'S';
 
     let lastSentMessage = '';
 
@@ -174,7 +169,7 @@
 
     function autoGrow() {
         input.style.height = 'auto';
-        input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+        input.style.height = Math.min(input.scrollHeight, 88) + 'px';
     }
 
     function updateCounter() {
@@ -312,26 +307,26 @@
         }
 
         bubble.appendChild(content);
-        bubbleContainer.appendChild(bubble);
-
-        const actions = document.createElement('div');
-        actions.className = 'chat-actions';
 
         const timestamp = document.createElement('span');
         timestamp.className = 'chat-timestamp';
         timestamp.textContent = formatTime(new Date());
-        actions.appendChild(timestamp);
+        bubble.appendChild(timestamp);
 
+        bubbleContainer.appendChild(bubble);
         if (role === 'assistant') {
+            const actions = document.createElement('div');
+            actions.className = 'chat-actions';
+
             const copyBtn = document.createElement('button');
             copyBtn.type = 'button';
             copyBtn.className = 'copy-button';
             copyBtn.textContent = 'Copy';
             copyBtn.setAttribute('aria-label', 'Copy reply');
             actions.appendChild(copyBtn);
+            bubbleContainer.appendChild(actions);
         }
 
-        bubbleContainer.appendChild(actions);
         article.appendChild(avatar);
         article.appendChild(bubbleContainer);
 
