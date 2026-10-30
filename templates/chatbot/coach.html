@@ -70,40 +70,40 @@
                 {% else %}English Practice{% endif %}
             </div>
             <p class="coach-empty-desc">
-                {% if mode == 'resume' %}Build, review, and tailor your resume.
-                {% elif mode == 'interview' %}Practice interview questions and structured answers.
-                {% else %}Improve your professional English.{% endif %}
+                {% if mode == 'resume' %}Build and improve your resume.
+                {% elif mode == 'interview' %}Practise questions and strengthen your answers.
+                {% else %}Improve your English for the workplace.{% endif %}
             </p>
             <div class="prompt-chips" role="group" aria-label="Example prompts">
                 {% if mode == 'resume' %}
-                    <button type="button" class="prompt-chip" data-prompt="Highlight my 3 years of Python and Django experience in bullet points">
-                        Highlight my 3 years of Python and Django experience in bullet points
+                    <button type="button" class="prompt-chip">
+                        Write a resume summary for a fresher
                     </button>
-                    <button type="button" class="prompt-chip" data-prompt="Write a professional summary for a junior backend developer">
-                        Write a professional summary for a junior backend developer
+                    <button type="button" class="prompt-chip">
+                        Improve my project description
                     </button>
-                    <button type="button" class="prompt-chip" data-prompt="How can I explain a career transition into software engineering?">
-                        How can I explain a career transition into software engineering?
+                    <button type="button" class="prompt-chip">
+                        Suggest skills for a Python developer
                     </button>
                 {% elif mode == 'interview' %}
-                    <button type="button" class="prompt-chip" data-prompt="Ask me 3 behavioral questions for a software engineer role">
-                        Ask me 3 behavioral questions for a software engineer role
+                    <button type="button" class="prompt-chip">
+                        Interview me for Python Developer
                     </button>
-                    <button type="button" class="prompt-chip" data-prompt="How should I structure my answer using the STAR method?">
-                        How should I structure my answer using the STAR method?
+                    <button type="button" class="prompt-chip">
+                        Ask me common HR questions
                     </button>
-                    <button type="button" class="prompt-chip" data-prompt="Give me a mock technical question on REST APIs and databases">
-                        Give me a mock technical question on REST APIs and databases
+                    <button type="button" class="prompt-chip">
+                        Give me feedback on my answer
                     </button>
                 {% else %}
-                    <button type="button" class="prompt-chip" data-prompt="Help me introduce myself professionally in an English interview">
-                        Help me introduce myself professionally in an English interview
+                    <button type="button" class="prompt-chip">
+                        Correct my sentence
                     </button>
-                    <button type="button" class="prompt-chip" data-prompt="Correct my grammar: I am having 2 years experience in IT field">
-                        Correct my grammar: I am having 2 years experience in IT field
+                    <button type="button" class="prompt-chip">
+                        Let's practise a job interview in English
                     </button>
-                    <button type="button" class="prompt-chip" data-prompt="Practice polite phrases for asking an interviewer to clarify a question">
-                        Practice polite phrases for asking an interviewer to clarify a question
+                    <button type="button" class="prompt-chip">
+                        Teach me 5 useful workplace phrases
                     </button>
                 {% endif %}
             </div>
@@ -164,7 +164,9 @@
     }
 
     function scrollToBottom() {
-        chatWindow.scrollTop = chatWindow.scrollHeight;
+        requestAnimationFrame(function () {
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        });
     }
 
     function autoGrow() {
@@ -380,11 +382,11 @@
 
     // Prompt chips
     document.addEventListener('click', function (event) {
-        const chip = event.target.closest('.prompt-chip');
+        const chip = event.target.closest && event.target.closest('.prompt-chip');
         if (!chip) {
             return;
         }
-        const promptText = chip.getAttribute('data-prompt');
+        const promptText = chip.textContent.trim();
         if (promptText) {
             input.value = promptText;
             updateCounter();
@@ -488,6 +490,7 @@
         sendMessage(message, false);
     });
 
+    window.addEventListener('load', scrollToBottom, { once: true });
     scrollToBottom();
 })();
 </script>

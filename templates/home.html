@@ -4,16 +4,12 @@
 
 {% block content %}
 <!-- Search Hero Section -->
-<section style="padding: var(--space-6) 0 var(--space-4); text-align: center;">
-    <h1 style="font-size: 28px; margin-bottom: var(--space-2); color: var(--brand-navy);">
-        Find verified career opportunities
-    </h1>
-    <p style="font-size: var(--font-subtitle); color: var(--text-secondary); max-width: 620px; margin: 0 auto var(--space-6);">
-        Connect with verified employers, practice with the AI career coach, and manage interview schedules.
-    </p>
+<section class="home-hero">
+    <h1>Find your first job</h1>
+    <p class="home-hero-subtitle">Search verified openings by role, skills, or location.</p>
 
     <!-- Main Job Search Bar -->
-    <div class="card" style="max-width: 760px; margin: 0 auto var(--space-6); padding: var(--space-3);">
+    <div class="home-search-panel">
         <form method="get" action="{% url 'job_list' %}" class="home-search-form">
             <div class="home-search-input-group">
                 <label for="home-q" class="visually-hidden" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">Job title or skill</label>
@@ -28,26 +24,24 @@
     </div>
 
     {% if not user.is_authenticated %}
-        <div style="display: flex; justify-content: center; gap: var(--space-3); margin-bottom: var(--space-6); flex-wrap: wrap;">
-            <a href="{% url 'job_list' %}" class="btn btn-outline">Browse jobs</a>
+        <div class="home-hero-actions">
+            <a href="{% url 'job_list' %}" class="home-browse-link">Browse jobs</a>
             <a href="{% url 'register' %}" class="btn btn-primary">Create an account</a>
         </div>
     {% endif %}
 </section>
 
 <!-- Latest Verified Jobs -->
-<section style="margin-bottom: var(--space-8);">
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: var(--space-4); gap: var(--space-2); flex-wrap: wrap;">
+<section class="home-latest">
+    <div class="home-section-heading">
         <div>
             <h2>Latest verified openings</h2>
-            <p style="color: var(--text-secondary); margin: 0; font-size: var(--font-small);">
-                Open roles from verified organizations
-            </p>
+            <p>Open roles from verified organizations</p>
         </div>
-        <a href="{% url 'job_list' %}" style="font-weight: 500; font-size: var(--font-small);">View all jobs &rarr;</a>
+        <a href="{% url 'job_list' %}">View all jobs &rarr;</a>
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--space-4);">
+    <div class="home-job-grid">
         {% for job in latest_jobs %}
             <article class="job-card">
                 <div>
@@ -72,32 +66,32 @@
                 </div>
             </article>
         {% empty %}
-            <div class="card" style="grid-column: 1 / -1; text-align: center; padding: var(--space-6);">
-                <p style="color: var(--text-muted); margin: 0;">No active openings currently available. Check back soon.</p>
+            <div class="card home-empty-state">
+                <p>No active openings currently available. Check back soon.</p>
             </div>
         {% endfor %}
     </div>
 </section>
 
 <!-- How It Works Section -->
-<section style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-6); margin-bottom: var(--space-8);">
-    <h2 style="text-align: center; margin-bottom: var(--space-6);">How FirstHope works</h2>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-4);">
-        <div class="card" style="margin-bottom: 0;">
-            <h4 style="color: var(--brand-navy);">1. Create your profile</h4>
-            <p style="color: var(--text-secondary); font-size: var(--font-small); margin: 0;">
+<section class="home-how-it-works">
+    <h2>How FirstHope works</h2>
+    <div class="home-how-it-works-grid">
+        <div class="card">
+            <h4>1. Create your profile</h4>
+            <p>
                 Register as a candidate or recruiter. Accounts require email verification code confirmation.
             </p>
         </div>
-        <div class="card" style="margin-bottom: 0;">
-            <h4 style="color: var(--brand-navy);">2. Verification &amp; applications</h4>
-            <p style="color: var(--text-secondary); font-size: var(--font-small); margin: 0;">
+        <div class="card">
+            <h4>2. Verification &amp; applications</h4>
+            <p>
                 Recruiters submit business registration documents for review. Candidates submit structured resumes for open roles.
             </p>
         </div>
-        <div class="card" style="margin-bottom: 0;">
-            <h4 style="color: var(--brand-navy);">3. AI Coach &amp; interviews</h4>
-            <p style="color: var(--text-secondary); font-size: var(--font-small); margin: 0;">
+        <div class="card">
+            <h4>3. AI Coach &amp; interviews</h4>
+            <p>
                 Candidates practice interview questions and communication with the AI Coach, while recruiters coordinate schedules and evaluate applicants.
             </p>
         </div>
