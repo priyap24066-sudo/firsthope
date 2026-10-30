@@ -29,7 +29,7 @@
             {% for job in jobs %}
                 <tr>
                     <td>
-                        <a href="{% url 'job_detail' job.pk %}" style="font-weight: 600;">{{ job.title }}</a>
+                        <a href="{% url 'job_detail' job.pk %}" style="font-weight: 600; color: var(--brand-navy);">{{ job.title }}</a>
                         <div style="font-size: var(--font-small); color: var(--text-muted);">{{ job.company_name }}</div>
                     </td>
                     <td>{{ job.location }}</td>
@@ -47,17 +47,17 @@
                     </td>
                     <td style="color: var(--text-muted); font-size: var(--font-small);">{{ job.created_at|date:"M d, Y" }}</td>
                     <td style="text-align: right; white-space: nowrap;">
-                        <a href="{% url 'job_applicants' job.pk %}" class="btn btn-secondary btn-sm">Applicants</a>
-                        <a href="{% url 'job_edit' job.pk %}" class="btn btn-secondary btn-sm">Edit</a>
-                        <a href="{% url 'job_delete' job.pk %}" class="btn btn-secondary btn-sm" style="color: #dc2626;">Delete</a>
+                        <a href="{% url 'job_applicants' job.pk %}" class="btn btn-outline btn-sm">Applicants</a>
+                        <a href="{% url 'job_edit' job.pk %}" class="btn btn-outline btn-sm">Edit</a>
+                        <a href="{% url 'job_delete' job.pk %}" class="btn btn-outline btn-sm" style="color: #dc2626;">Delete</a>
                     </td>
                 </tr>
             {% empty %}
                 <tr>
                     <td colspan="6" style="text-align: center; padding: var(--space-8); color: var(--text-muted);">
-                        You have not posted any jobs yet.
+                        No jobs posted yet.
                         <div style="margin-top: var(--space-3);">
-                            <a href="{% url 'job_create' %}" class="btn btn-primary btn-sm">Post your first job</a>
+                            <a href="{% url 'job_create' %}" class="btn btn-primary btn-sm">Post a job</a>
                         </div>
                     </td>
                 </tr>

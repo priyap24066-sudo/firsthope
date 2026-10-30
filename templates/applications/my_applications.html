@@ -9,17 +9,17 @@
         <p style="color: var(--text-secondary); margin: 0;">Track the progress and review statuses of your job applications.</p>
     </div>
     <div>
-        <a href="{% url 'job_list' %}" class="btn btn-secondary btn-sm">Browse more jobs</a>
+        <a href="{% url 'job_list' %}" class="btn btn-outline btn-sm">Browse jobs</a>
     </div>
 </div>
 
-<div style="display: flex; flex-direction: column; gap: var(--space-4);">
+<div style="display: flex; flex-direction: column; gap: var(--space-3);">
     {% for app in applications %}
         <article class="card" style="margin-bottom: 0;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-2);">
                 <div>
-                    <h3 style="font-size: 18px; margin-bottom: var(--space-1);">
-                        <a href="{% url 'job_detail' app.job.pk %}">{{ app.job.title }}</a>
+                    <h3 style="font-size: 16px; margin-bottom: 4px;">
+                        <a href="{% url 'job_detail' app.job.pk %}" style="color: var(--brand-navy);">{{ app.job.title }}</a>
                     </h3>
                     <p style="color: var(--text-secondary); font-size: var(--font-small); margin: 0;">
                         <strong>{{ app.job.company_name }}</strong> &bull; {{ app.job.location }} &bull; {{ app.job.get_job_type_display }}
@@ -28,7 +28,7 @@
                 <span class="badge badge-{{ app.status }}">{{ app.get_status_display }}</span>
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: var(--space-3); margin-top: var(--space-3); font-size: var(--font-small);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: var(--space-3); margin-top: var(--space-3); font-size: var(--font-small); flex-wrap: wrap; gap: var(--space-2);">
                 <span style="color: var(--text-muted);">
                     Applied on {{ app.applied_at|date:"M d, Y" }}
                 </span>
@@ -41,7 +41,7 @@
     {% empty %}
         <div class="card" style="text-align: center; padding: var(--space-8); color: var(--text-muted);">
             <h3>No applications submitted yet</h3>
-            <p style="margin-bottom: var(--space-4);">Explore verified job openings and apply with your resume.</p>
+            <p style="margin-bottom: var(--space-4); color: var(--text-secondary);">Explore verified job openings and apply with your resume.</p>
             <a href="{% url 'job_list' %}" class="btn btn-primary btn-sm">Find jobs now</a>
         </div>
     {% endfor %}

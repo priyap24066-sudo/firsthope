@@ -4,15 +4,15 @@
 
 {% block content %}
 <div class="card" style="max-width: 800px; margin: 0 auto; padding: var(--space-6);">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-4); margin-bottom: var(--space-6);">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-4); margin-bottom: var(--space-6); flex-wrap: wrap; gap: var(--space-2);">
         <div>
-            <h1 style="font-size: 24px; margin-bottom: var(--space-1);">Account profile</h1>
+            <h1 style="font-size: 22px; margin-bottom: 4px;">Account profile</h1>
             <p style="color: var(--text-secondary); margin: 0; font-size: var(--font-small);">
                 Signed in as <strong>{{ user.username }}</strong> ({{ user.get_role_display }}) &bull; {{ user.email }}
             </p>
         </div>
         {% if user.role == 'recruiter' %}
-            <a href="{% url 'company_verification' %}" class="btn btn-secondary btn-sm">Company verification</a>
+            <a href="{% url 'company_verification' %}" class="btn btn-outline btn-sm">Company verification</a>
         {% endif %}
     </div>
 
@@ -23,12 +23,12 @@
             <div class="alert alert-danger">{{ form.non_field_errors }}</div>
         {% endif %}
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--space-4);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-4);">
             {% for field in form %}
                 <div class="form-group" style="{% if field.name == 'about' or field.name == 'about_company' or field.name == 'address' %}grid-column: 1 / -1;{% endif %}">
                     <label for="{{ field.id_for_label }}">
                         {{ field.label }}
-                        {% if field.field.required %}<span style="color:#dc2626;">*</span>{% endif %}
+                        {% if field.field.required %}<span style="color: #dc2626;">*</span>{% endif %}
                     </label>
                     {{ field }}
                     {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
@@ -38,7 +38,7 @@
         </div>
 
         <div style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-4); margin-top: var(--space-4); display: flex; justify-content: flex-end; gap: var(--space-3);">
-            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Cancel</a>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline">Cancel</a>
             <button type="submit" class="btn btn-primary">Save changes</button>
         </div>
     </form>

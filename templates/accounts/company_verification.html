@@ -6,7 +6,7 @@
 <div style="margin-bottom: var(--space-6);">
     <h1>Company verification</h1>
     <p style="color: var(--text-secondary); margin: 0;">
-        Submit authentic business documentation to earn verified recruiter status and unlock job posting.
+        Submit business documentation to earn verified recruiter status and enable job posting.
     </p>
 </div>
 
@@ -26,12 +26,12 @@
                 {% if profile.is_verified %}
                     Your company is verified. You can post active job listings on FirstHope.
                 {% else %}
-                    Upload your company registration, GST, or business licence below. Our admin team verifies all documents within 24 hours.
+                    Upload company registration, GST, or business licence documents below for administrator verification.
                 {% endif %}
             </p>
         </div>
         <div>
-            <a href="{% url 'profile' %}" class="btn btn-secondary btn-sm">Edit company details</a>
+            <a href="{% url 'profile' %}" class="btn btn-outline btn-sm">Edit company details</a>
         </div>
     </div>
 </div>
@@ -39,7 +39,7 @@
 {% if not has_details %}
     <div class="alert alert-warning">
         <div>
-            <strong>Company profile incomplete:</strong> Please ensure your company name, website, official company email, and registered address are filled in your <a href="{% url 'profile' %}">company profile</a> before verification.
+            <strong>Company profile incomplete:</strong> Please ensure your company name, website, official email, and registered address are filled in your <a href="{% url 'profile' %}">company profile</a> before verification.
         </div>
     </div>
 {% endif %}
@@ -75,14 +75,14 @@
 
                 <div class="form-group">
                     <label for="id_description">Description <span style="font-weight: normal; color: var(--text-muted);">(Required if 'Other proof')</span></label>
-                    <input type="text" id="id_description" name="description" value="{{ form.description.value|default:'' }}" placeholder="Document details or authority name">
+                    <input type="text" id="id_description" name="description" value="{{ form.description.value|default:'' }}" placeholder="Document details or issuing authority">
                     {% if form.description.errors %}<div class="errorlist">{{ form.description.errors }}</div>{% endif %}
                 </div>
 
                 <div class="form-group">
                     <label for="id_file">File upload</label>
                     <input type="file" id="id_file" name="file" required accept=".pdf,.jpg,.jpeg,.png">
-                    <span class="helptext">Accepted: PDF, JPG, PNG (Max 5 MB). High quality scanned copies only.</span>
+                    <span class="helptext">Accepted: PDF, JPG, PNG (Max 5 MB). Clear scanned copies only.</span>
                     {% if form.file.errors %}<div class="errorlist">{{ form.file.errors }}</div>{% endif %}
                 </div>
 
@@ -96,7 +96,7 @@
             </div>
         {% else %}
             <div class="alert alert-info">
-                You have reached the maximum of 3 uploaded documents. If your documents were rejected or you need assistance, please contact admin support.
+                You have reached the maximum of 3 uploaded documents. If your documents were rejected or you need assistance, please contact support.
             </div>
         {% endif %}
     </div>
@@ -109,8 +109,8 @@
         </p>
 
         {% for doc in documents %}
-            <div style="border: 1px solid var(--border-color); border-radius: var(--radius); padding: var(--space-3); margin-bottom: var(--space-3); background: var(--bg-surface);">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-2); margin-bottom: var(--space-2);">
+            <div style="border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: var(--space-3); margin-bottom: var(--space-3); background-color: var(--bg-surface);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-2); margin-bottom: var(--space-2); flex-wrap: wrap;">
                     <div>
                         <strong style="color: var(--text-primary); font-size: var(--font-body);">
                             {{ doc.get_document_type_display }}
@@ -135,7 +135,7 @@
                 {% endif %}
 
                 {% if doc.admin_note %}
-                    <div style="font-size: var(--font-small); background: #fef2f2; color: #991b1b; padding: var(--space-2); border-radius: var(--radius); margin-bottom: var(--space-2);">
+                    <div style="font-size: var(--font-small); background-color: var(--status-rejected-bg); color: var(--status-rejected-text); padding: var(--space-2); border-radius: var(--radius); margin-bottom: var(--space-2); border: 1px solid #fecaca;">
                         <strong>Admin review note:</strong> {{ doc.admin_note }}
                     </div>
                 {% endif %}
@@ -147,7 +147,7 @@
             </div>
         {% empty %}
             <div style="text-align: center; padding: var(--space-6); color: var(--text-muted); font-size: var(--font-small);">
-                No documents uploaded yet. Upload at least one business certificate to get verified.
+                No documents uploaded yet. Upload at least one business certificate to verify company account.
             </div>
         {% endfor %}
     </div>

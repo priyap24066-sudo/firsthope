@@ -5,16 +5,16 @@
 {% block content %}
 <div style="margin-bottom: var(--space-6);">
     <h1>My interviews</h1>
-    <p style="color: var(--text-secondary); margin: 0;">Review your upcoming and past interview schedules with employers.</p>
+    <p style="color: var(--text-secondary); margin: 0;">Review your upcoming and completed interviews with employers.</p>
 </div>
 
-<div style="display: flex; flex-direction: column; gap: var(--space-4);">
+<div style="display: flex; flex-direction: column; gap: var(--space-3);">
     {% for i in interviews %}
         <article class="card" style="margin-bottom: 0;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-3);">
                 <div>
-                    <h3 style="font-size: 18px; margin-bottom: var(--space-1);">
-                        <a href="{% url 'job_detail' i.application.job.pk %}">{{ i.application.job.title }}</a>
+                    <h3 style="font-size: 16px; margin-bottom: 4px;">
+                        <a href="{% url 'job_detail' i.application.job.pk %}" style="color: var(--brand-navy);">{{ i.application.job.title }}</a>
                         <span style="font-size: var(--font-small); color: var(--text-muted); font-weight: normal;">
                             &bull; {{ i.application.job.company_name }}
                         </span>
@@ -28,7 +28,7 @@
             </div>
 
             {% if i.notes %}
-                <div style="background: var(--bg-page); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: var(--space-3); font-size: var(--font-small); margin-bottom: var(--space-3);">
+                <div style="background-color: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: var(--space-3); font-size: var(--font-small); margin-bottom: var(--space-3);">
                     <strong>Recruiter instructions:</strong> {{ i.notes }}
                 </div>
             {% endif %}
@@ -36,7 +36,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: var(--space-3); flex-wrap: wrap; gap: var(--space-3);">
                 <div style="font-size: var(--font-small); color: var(--text-muted);">
                     {% if i.mode == 'online' %}
-                        Virtual meeting via video conference
+                        Virtual meeting via video link
                     {% else %}
                         Location: {{ i.location_or_link }}
                     {% endif %}
@@ -52,8 +52,8 @@
     {% empty %}
         <div class="card" style="text-align: center; padding: var(--space-8); color: var(--text-muted);">
             <h3>No interviews scheduled</h3>
-            <p style="margin-bottom: var(--space-4);">When recruiters shortlist your applications and schedule an interview, it will appear here.</p>
-            <a href="{% url 'my_applications' %}" class="btn btn-secondary btn-sm">View my applications</a>
+            <p style="margin-bottom: var(--space-4); color: var(--text-secondary);">When recruiters shortlist your applications and schedule an interview, it will appear here.</p>
+            <a href="{% url 'my_applications' %}" class="btn btn-outline btn-sm">View my applications</a>
         </div>
     {% endfor %}
 </div>

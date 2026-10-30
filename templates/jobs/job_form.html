@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ heading }} - FirstHope{% endblock %}
+{% block title %}Post Job - FirstHope{% endblock %}
 
 {% block content %}
 <div class="card" style="max-width: 760px; margin: 0 auto; padding: var(--space-6);">
     <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-3); margin-bottom: var(--space-6);">
-        <h1 style="font-size: 24px; margin-bottom: var(--space-1);">{{ heading }}</h1>
+        <h1 style="font-size: 22px; margin-bottom: 4px;">{{ heading }}</h1>
         <p style="color: var(--text-secondary); margin: 0; font-size: var(--font-small);">
-            Provide accurate job specifications to attract qualified candidates.
+            Provide clear job specifications and requirements to attract qualified candidates.
         </p>
     </div>
 
@@ -25,19 +25,19 @@
             </legend>
 
             <div class="form-group">
-                <label for="{{ form.title.id_for_label }}">Job title <span style="color:#dc2626;">*</span></label>
+                <label for="{{ form.title.id_for_label }}">Job title <span style="color: #dc2626;">*</span></label>
                 {{ form.title }}
                 {% if form.title.errors %}<div class="errorlist">{{ form.title.errors }}</div>{% endif %}
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
                 <div class="form-group">
-                    <label for="{{ form.company_name.id_for_label }}">Company name <span style="color:#dc2626;">*</span></label>
+                    <label for="{{ form.company_name.id_for_label }}">Company name <span style="color: #dc2626;">*</span></label>
                     {{ form.company_name }}
                     {% if form.company_name.errors %}<div class="errorlist">{{ form.company_name.errors }}</div>{% endif %}
                 </div>
                 <div class="form-group">
-                    <label for="{{ form.location.id_for_label }}">Job location <span style="color:#dc2626;">*</span></label>
+                    <label for="{{ form.location.id_for_label }}">Job location <span style="color: #dc2626;">*</span></label>
                     {{ form.location }}
                     {% if form.location.errors %}<div class="errorlist">{{ form.location.errors }}</div>{% endif %}
                 </div>
@@ -52,7 +52,7 @@
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4);">
                 <div class="form-group">
-                    <label for="{{ form.job_type.id_for_label }}">Employment type <span style="color:#dc2626;">*</span></label>
+                    <label for="{{ form.job_type.id_for_label }}">Employment type <span style="color: #dc2626;">*</span></label>
                     {{ form.job_type }}
                     {% if form.job_type.errors %}<div class="errorlist">{{ form.job_type.errors }}</div>{% endif %}
                 </div>
@@ -65,7 +65,7 @@
             </div>
 
             <div class="form-group">
-                <label for="{{ form.skills_required.id_for_label }}">Skills required <span style="color:#dc2626;">*</span></label>
+                <label for="{{ form.skills_required.id_for_label }}">Skills required <span style="color: #dc2626;">*</span></label>
                 {{ form.skills_required }}
                 <span class="helptext">{{ form.skills_required.help_text }}</span>
                 {% if form.skills_required.errors %}<div class="errorlist">{{ form.skills_required.errors }}</div>{% endif %}
@@ -79,7 +79,7 @@
             </legend>
 
             <div class="form-group">
-                <label for="{{ form.description.id_for_label }}">Full description <span style="color:#dc2626;">*</span></label>
+                <label for="{{ form.description.id_for_label }}">Full description <span style="color: #dc2626;">*</span></label>
                 {{ form.description }}
                 {% if form.description.errors %}<div class="errorlist">{{ form.description.errors }}</div>{% endif %}
             </div>
@@ -95,7 +95,7 @@
         </fieldset>
 
         <div style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-4); display: flex; justify-content: flex-end; gap: var(--space-3);">
-            <a href="{% url 'my_jobs' %}" class="btn btn-secondary">Cancel</a>
+            <a href="{% url 'my_jobs' %}" class="btn btn-outline">Cancel</a>
             <button type="submit" class="btn btn-primary">Save and publish</button>
         </div>
     </form>

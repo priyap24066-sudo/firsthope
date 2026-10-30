@@ -7,7 +7,7 @@
     <div>
         <h1>Recruiter dashboard</h1>
         <p style="color: var(--text-secondary); margin: 0;">
-            Welcome, <strong>{{ user.username }}</strong>
+            Account: <strong>{{ user.username }}</strong>
             {% if user.recruiter_profile.company_name %}
                 &bull; {{ user.recruiter_profile.company_name }}
             {% endif %}
@@ -20,17 +20,17 @@
 
 <!-- Company Verification Notice if unverified -->
 {% if not user.recruiter_profile.is_verified %}
-    <div class="card" style="border-left: 4px solid #f59e0b; background: #fffbeb; margin-bottom: var(--space-6);">
+    <div class="card" style="border-left: 4px solid #d97706; margin-bottom: var(--space-6);">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3);">
             <div>
                 <strong style="color: #92400e; font-size: var(--font-subtitle); display: block; margin-bottom: 2px;">
-                    Mandatory verification required to post jobs
+                    Verification required before posting jobs
                 </strong>
-                <p style="color: #78350f; font-size: var(--font-small); margin: 0;">
-                    To protect job seekers from fraudulent postings, please upload your company registration, GST, or licence proof.
+                <p style="color: var(--text-secondary); font-size: var(--font-small); margin: 0;">
+                    Please upload company registration, GST, or business licence documentation for approval.
                 </p>
             </div>
-            <a href="{% url 'company_verification' %}" class="btn btn-primary btn-sm">Upload company proof</a>
+            <a href="{% url 'company_verification' %}" class="btn btn-outline btn-sm">Upload company proof</a>
         </div>
     </div>
 {% endif %}
@@ -67,7 +67,7 @@
             </div>
 
             {% for app in recent_applications %}
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding: var(--space-3) 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding: var(--space-3) 0; gap: var(--space-2); flex-wrap: wrap;">
                     <div>
                         <div style="font-weight: 600; margin-bottom: 2px;">
                             {{ app.candidate.username }}
@@ -86,7 +86,7 @@
         <div class="card">
             <h3 style="margin-bottom: var(--space-3);">Jobs with most applicants</h3>
             {% for job in job_stats %}
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding: var(--space-3) 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding: var(--space-3) 0; gap: var(--space-2); flex-wrap: wrap;">
                     <div>
                         <a href="{% url 'job_applicants' job.pk %}" style="font-weight: 600;">{{ job.title }}</a>
                         <div style="font-size: var(--font-small); color: var(--text-muted);">
@@ -105,7 +105,7 @@
         </div>
     </div>
 
-    <!-- Right Column: Interviews & Quick Actions -->
+    <!-- Right Column: Interviews & Links -->
     <aside>
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
@@ -129,12 +129,12 @@
         </div>
 
         <div class="card">
-            <h4 style="margin-bottom: var(--space-3);">Recruiter links</h4>
+            <h4 style="margin-bottom: var(--space-3);">Quick management</h4>
             <div style="display: flex; flex-direction: column; gap: var(--space-2);">
-                <a href="{% url 'my_jobs' %}" class="btn btn-secondary btn-sm" style="justify-content: flex-start;">Manage active listings</a>
-                <a href="{% url 'company_verification' %}" class="btn btn-secondary btn-sm" style="justify-content: flex-start;">Company verification documents</a>
-                <a href="{% url 'recruiter_interviews' %}" class="btn btn-secondary btn-sm" style="justify-content: flex-start;">Interview calendar</a>
-                <a href="{% url 'profile' %}" class="btn btn-secondary btn-sm" style="justify-content: flex-start;">Edit company details</a>
+                <a href="{% url 'my_jobs' %}" class="btn btn-outline btn-sm" style="justify-content: flex-start;">Manage active listings</a>
+                <a href="{% url 'company_verification' %}" class="btn btn-outline btn-sm" style="justify-content: flex-start;">Company verification status</a>
+                <a href="{% url 'recruiter_interviews' %}" class="btn btn-outline btn-sm" style="justify-content: flex-start;">Interview schedules</a>
+                <a href="{% url 'profile' %}" class="btn btn-outline btn-sm" style="justify-content: flex-start;">Edit profile details</a>
             </div>
         </div>
     </aside>

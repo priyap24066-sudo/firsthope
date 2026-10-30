@@ -1,8 +1,15 @@
 {% extends 'base.html' %}
 
+{% block title %}Page Not Found - FirstHope{% endblock %}
+
 {% block content %}
-<div class="container">
-    <h2>Page not found</h2>
-    <p><a href="{% url 'job_list' %}">Back to jobs</a></p>
+<div class="container-narrow">
+    <div class="card" style="padding: var(--space-6); text-align: center;">
+        <h2 style="margin-bottom: var(--space-2);">Page not found</h2>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-6);">
+            The page you requested could not be located.
+        </p>
+        <a href="{% url 'job_list' %}" class="btn btn-primary">Browse jobs</a>
+    </div>
 </div>
 {% endblock %}

@@ -3,30 +3,33 @@
 {% block title %}Find Jobs &amp; Verified Talent - FirstHope{% endblock %}
 
 {% block content %}
-<section style="padding: var(--space-8) 0 var(--space-6); text-align: center;">
-    <h1 style="font-size: 32px; margin-bottom: var(--space-2); color: var(--brand-navy);">
+<!-- Search Hero Section -->
+<section style="padding: var(--space-6) 0 var(--space-4); text-align: center;">
+    <h1 style="font-size: 28px; margin-bottom: var(--space-2); color: var(--brand-navy);">
         Find verified career opportunities
     </h1>
-    <p style="font-size: var(--font-subtitle); color: var(--text-secondary); max-width: 600px; margin: 0 auto var(--space-6);">
-        Connecting ambitious candidates with verified employers and automated interview workflows.
+    <p style="font-size: var(--font-subtitle); color: var(--text-secondary); max-width: 620px; margin: 0 auto var(--space-6);">
+        Connect with verified employers, practice with the AI career coach, and manage interview schedules.
     </p>
 
     <!-- Main Job Search Bar -->
     <div class="card" style="max-width: 760px; margin: 0 auto var(--space-6); padding: var(--space-3);">
-        <form method="get" action="{% url 'job_list' %}" style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
-            <div style="flex: 2; min-width: 220px; text-align: left;">
-                <input type="text" name="q" placeholder="Job title, skills, or company" aria-label="Job title or skill">
+        <form method="get" action="{% url 'job_list' %}" class="home-search-form">
+            <div class="home-search-input-group">
+                <label for="home-q" class="visually-hidden" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">Job title or skill</label>
+                <input type="text" id="home-q" name="q" placeholder="Job title, skills, or company" aria-label="Job title, skills, or company">
             </div>
-            <div style="flex: 1.5; min-width: 160px; text-align: left;">
-                <input type="text" name="location" placeholder="City or location" aria-label="Location">
+            <div class="home-search-input-group">
+                <label for="home-loc" class="visually-hidden" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">Location</label>
+                <input type="text" id="home-loc" name="location" placeholder="City or location" aria-label="City or location">
             </div>
-            <button type="submit" class="btn btn-primary" style="flex: 0 0 auto;">Search jobs</button>
+            <button type="submit" class="btn btn-primary">Search jobs</button>
         </form>
     </div>
 
     {% if not user.is_authenticated %}
-        <div style="display: flex; justify-content: center; gap: var(--space-3); margin-bottom: var(--space-8);">
-            <a href="{% url 'job_list' %}" class="btn btn-secondary">Browse jobs</a>
+        <div style="display: flex; justify-content: center; gap: var(--space-3); margin-bottom: var(--space-6); flex-wrap: wrap;">
+            <a href="{% url 'job_list' %}" class="btn btn-outline">Browse jobs</a>
             <a href="{% url 'register' %}" class="btn btn-primary">Create an account</a>
         </div>
     {% endif %}
@@ -34,11 +37,11 @@
 
 <!-- Latest Verified Jobs -->
 <section style="margin-bottom: var(--space-8);">
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: var(--space-4);">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: var(--space-4); gap: var(--space-2); flex-wrap: wrap;">
         <div>
             <h2>Latest verified openings</h2>
             <p style="color: var(--text-secondary); margin: 0; font-size: var(--font-small);">
-                Verified recruiters actively hiring right now
+                Open roles from verified organizations
             </p>
         </div>
         <a href="{% url 'job_list' %}" style="font-weight: 500; font-size: var(--font-small);">View all jobs &rarr;</a>
@@ -46,28 +49,28 @@
 
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--space-4);">
         {% for job in latest_jobs %}
-            <div class="card" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+            <article class="job-card">
                 <div>
-                    <h3 style="font-size: var(--font-subtitle); margin-bottom: var(--space-1);">
+                    <h3 class="job-card-title">
                         <a href="{% url 'job_detail' job.pk %}">{{ job.title }}</a>
                     </h3>
-                    <div style="display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2);">
-                        <span style="font-weight: 600; color: var(--text-secondary);">{{ job.company_name }}</span>
+                    <div class="job-card-company">
+                        <span>{{ job.company_name }}</span>
                         {% if job.recruiter.recruiter_profile.is_verified %}
                             <span class="badge badge-verified">Verified</span>
                         {% endif %}
                     </div>
-                    <p style="color: var(--text-muted); font-size: var(--font-small); margin-bottom: var(--space-3);">
-                        {{ job.location }} &middot; {{ job.get_job_type_display }}
-                        {% if job.salary %} &middot; {{ job.salary }}{% endif %}
-                    </p>
+                    <div class="job-card-meta">
+                        {{ job.location }} &bull; {{ job.get_job_type_display }}
+                        {% if job.salary %} &bull; {{ job.salary }}{% endif %}
+                    </div>
                 </div>
                 <div>
                     {% for skill in job.skills_list|slice:":3" %}
                         <span class="skill-tag">{{ skill }}</span>
                     {% endfor %}
                 </div>
-            </div>
+            </article>
         {% empty %}
             <div class="card" style="grid-column: 1 / -1; text-align: center; padding: var(--space-6);">
                 <p style="color: var(--text-muted); margin: 0;">No active openings currently available. Check back soon.</p>
@@ -76,26 +79,26 @@
     </div>
 </section>
 
-<!-- How It Works -->
-<section style="border-top: 1px solid var(--border-color); padding-top: var(--space-8); margin-bottom: var(--space-8);">
+<!-- How It Works Section -->
+<section style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-6); margin-bottom: var(--space-8);">
     <h2 style="text-align: center; margin-bottom: var(--space-6);">How FirstHope works</h2>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-6);">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-4);">
         <div class="card" style="margin-bottom: 0;">
             <h4 style="color: var(--brand-navy);">1. Create your profile</h4>
             <p style="color: var(--text-secondary); font-size: var(--font-small); margin: 0;">
-                Register as a candidate or recruiter. All accounts are secured with OTP verification to stop spam and bots.
+                Register as a candidate or recruiter. Accounts require email verification code confirmation.
             </p>
         </div>
         <div class="card" style="margin-bottom: 0;">
             <h4 style="color: var(--brand-navy);">2. Verification &amp; applications</h4>
             <p style="color: var(--text-secondary); font-size: var(--font-small); margin: 0;">
-                Recruiters upload business certificates to earn verified status. Candidates apply directly with protected resume handling.
+                Recruiters submit business registration documents for review. Candidates submit structured resumes for open roles.
             </p>
         </div>
         <div class="card" style="margin-bottom: 0;">
             <h4 style="color: var(--brand-navy);">3. AI Coach &amp; interviews</h4>
             <p style="color: var(--text-secondary); font-size: var(--font-small); margin: 0;">
-                Candidates practice with the AI interview and communication tutor, while recruiters schedule and track interviews seamlessly.
+                Candidates practice interview questions and communication with the AI Coach, while recruiters coordinate schedules and evaluate applicants.
             </p>
         </div>
     </div>

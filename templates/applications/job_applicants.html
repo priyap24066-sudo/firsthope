@@ -29,12 +29,12 @@
 </div>
 
 <!-- Applicant Cards -->
-<div style="display: flex; flex-direction: column; gap: var(--space-4);">
+<div style="display: flex; flex-direction: column; gap: var(--space-3);">
     {% for app in applications %}
         <article class="card" style="margin-bottom: 0;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-3);">
                 <div>
-                    <h3 style="font-size: 18px; margin-bottom: var(--space-1);">
+                    <h3 style="font-size: 16px; margin-bottom: 4px;">
                         {{ app.candidate.username }}
                         <span style="font-size: var(--font-small); font-weight: normal; color: var(--text-muted);">
                             &bull; {{ app.candidate.email }}
@@ -51,7 +51,7 @@
 
                 <div style="display: flex; align-items: center; gap: var(--space-3);">
                     <span class="badge badge-{{ app.status }}">{{ app.get_status_display }}</span>
-                    <a href="{% url 'download_resume' app.pk %}" target="_blank" class="btn btn-secondary btn-sm">
+                    <a href="{% url 'download_resume' app.pk %}" target="_blank" class="btn btn-outline btn-sm">
                         View resume
                     </a>
                 </div>
@@ -66,7 +66,7 @@
             {% endif %}
 
             {% if app.cover_letter %}
-                <details style="margin-bottom: var(--space-3); background: var(--bg-page); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: var(--space-2) var(--space-3);">
+                <details style="margin-bottom: var(--space-3); background-color: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: var(--space-2) var(--space-3);">
                     <summary style="font-size: var(--font-small); font-weight: 500; cursor: pointer; color: var(--text-secondary);">
                         View cover letter
                     </summary>
@@ -81,20 +81,20 @@
                     Applied {{ app.applied_at|date:"M d, Y, h:i A" }}
                 </div>
 
-                <div style="display: flex; gap: var(--space-2);">
+                <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
                     {% if app.status == 'shortlisted' %}
                         <a href="{% url 'schedule_interview' app.pk %}" class="btn btn-primary btn-sm">Schedule interview</a>
                     {% endif %}
-                    <form method="post" action="{% url 'update_status' app.pk %}" style="display: inline-flex; gap: var(--space-2);">
+                    <form method="post" action="{% url 'update_status' app.pk %}" style="display: inline-flex; gap: var(--space-2); margin: 0;">
                         {% csrf_token %}
                         {% if app.status != 'shortlisted' %}
-                            <button type="submit" name="status" value="shortlisted" class="btn btn-secondary btn-sm">Shortlist</button>
+                            <button type="submit" name="status" value="shortlisted" class="btn btn-outline btn-sm">Shortlist</button>
                         {% endif %}
                         {% if app.status != 'hired' %}
-                            <button type="submit" name="status" value="hired" class="btn btn-secondary btn-sm" style="color: #03543f;">Hire</button>
+                            <button type="submit" name="status" value="hired" class="btn btn-outline btn-sm" style="color: #065f46;">Hire</button>
                         {% endif %}
                         {% if app.status != 'rejected' %}
-                            <button type="submit" name="status" value="rejected" class="btn btn-secondary btn-sm" style="color: #9b1c1c;">Reject</button>
+                            <button type="submit" name="status" value="rejected" class="btn btn-outline btn-sm" style="color: #991b1b;">Reject</button>
                         {% endif %}
                     </form>
                 </div>
@@ -102,7 +102,9 @@
         </article>
     {% empty %}
         <div class="card" style="text-align: center; padding: var(--space-8); color: var(--text-muted);">
-            No applications match this status filter.
+            <h3>No applicants match this filter</h3>
+            <p style="margin-bottom: var(--space-4); color: var(--text-secondary);">Select a different status filter or view all candidates.</p>
+            <a href="{% url 'job_applicants' job.pk %}" class="btn btn-outline btn-sm">View all applicants</a>
         </div>
     {% endfor %}
 </div>

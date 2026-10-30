@@ -7,17 +7,16 @@
     <div class="card" style="padding: var(--space-6);">
         <h2 style="margin-bottom: var(--space-2); text-align: center;">Enter verification code</h2>
         <p style="color: var(--text-secondary); font-size: var(--font-small); text-align: center; margin-bottom: var(--space-6);">
-            We sent a 6-digit verification code to <strong>{{ target }}</strong>.
-            The code expires in 10 minutes.
+            A 6-digit code was sent to <strong>{{ target }}</strong>. It expires in 10 minutes.
         </p>
 
         <form method="post" action="{% url 'verify_otp' %}">
             {% csrf_token %}
 
             <div class="form-group" style="text-align: center;">
-                <label for="id_code" style="margin-bottom: var(--space-2);">6-digit code</label>
+                <label for="id_code" style="margin-bottom: var(--space-2);">6-digit verification code</label>
                 <input type="text" id="id_code" name="code" maxlength="6" minlength="6" required autofocus
-                       style="font-size: 24px; font-weight: 700; letter-spacing: 8px; text-align: center; max-width: 240px; margin: 0 auto; height: 50px;"
+                       style="font-size: 24px; font-weight: 700; letter-spacing: 8px; text-align: center; max-width: 220px; margin: 0 auto; height: 46px;"
                        placeholder="------" autocomplete="one-time-code" inputmode="numeric">
                 {% if form.code.errors %}<div class="errorlist">{{ form.code.errors }}</div>{% endif %}
             </div>

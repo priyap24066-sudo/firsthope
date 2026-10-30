@@ -9,7 +9,7 @@
     </div>
 
     <div class="card" style="padding: var(--space-6);">
-        <h1 style="font-size: 22px; margin-bottom: var(--space-1);">Apply for {{ job.title }}</h1>
+        <h1 style="font-size: 22px; margin-bottom: 4px;">Apply for {{ job.title }}</h1>
         <p style="color: var(--text-secondary); font-size: var(--font-small); margin-bottom: var(--space-6);">
             <strong>{{ job.company_name }}</strong> &bull; {{ job.location }}
         </p>
@@ -22,22 +22,22 @@
             {% endif %}
 
             <div class="form-group">
-                <label for="{{ form.resume.id_for_label }}">Resume file <span style="color:#dc2626;">*</span></label>
+                <label for="{{ form.resume.id_for_label }}">Resume file <span style="color: #dc2626;">*</span></label>
                 {{ form.resume }}
-                <span class="helptext">Accepted: PDF, DOC, DOCX. Maximum file size: 2 MB.</span>
+                <span class="helptext">Accepted formats: PDF, DOC, DOCX. Maximum file size: 2 MB.</span>
                 {% if form.resume.errors %}<div class="errorlist">{{ form.resume.errors }}</div>{% endif %}
             </div>
 
             <div class="form-group">
                 <label for="{{ form.cover_letter.id_for_label }}">Cover letter <span style="font-weight: normal; color: var(--text-muted);">(Optional)</span></label>
                 {{ form.cover_letter }}
-                <span class="helptext">Briefly introduce yourself and why you are interested in this position.</span>
+                <span class="helptext">Briefly introduce yourself and your relevant background for this role.</span>
                 {% if form.cover_letter.errors %}<div class="errorlist">{{ form.cover_letter.errors }}</div>{% endif %}
             </div>
 
             <div style="display: flex; gap: var(--space-3); margin-top: var(--space-6);">
                 <button type="submit" class="btn btn-primary" style="flex: 1;">Submit application</button>
-                <a href="{% url 'job_detail' job.pk %}" class="btn btn-secondary">Cancel</a>
+                <a href="{% url 'job_detail' job.pk %}" class="btn btn-outline">Cancel</a>
             </div>
         </form>
     </div>

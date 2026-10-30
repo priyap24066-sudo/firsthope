@@ -3,65 +3,144 @@
 {% block title %}AI Coach - FirstHope{% endblock %}
 
 {% block content %}
-<section class="container-wide" style="max-width: 900px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-4);">
-        <div>
-            <h1 style="margin-bottom: var(--space-1);">AI Career Coach</h1>
-            <p style="color: var(--text-secondary); margin: 0;">Practice, prepare, and build confidence for your next opportunity.</p>
+<div class="coach-card" aria-label="AI Career Coach">
+    <!-- Header -->
+    <header class="coach-header">
+        <div class="coach-header-left">
+            <nav class="segmented-control" aria-label="Coaching mode">
+                <a href="{% url 'coach' %}?mode=resume" class="segmented-btn {% if mode == 'resume' %}active{% endif %}" {% if mode == 'resume' %}aria-current="page"{% endif %}>Resume Builder</a>
+                <a href="{% url 'coach' %}?mode=interview" class="segmented-btn {% if mode == 'interview' %}active{% endif %}" {% if mode == 'interview' %}aria-current="page"{% endif %}>Job Preparation</a>
+                <a href="{% url 'coach' %}?mode=english" class="segmented-btn {% if mode == 'english' %}active{% endif %}" {% if mode == 'english' %}aria-current="page"{% endif %}>English Practice</a>
+            </nav>
         </div>
-        <span class="badge badge-applied" id="remaining-count" aria-live="polite">
-            {{ remaining_messages }} of {{ daily_limit }} messages remaining today
-        </span>
+
+        <div class="coach-header-right">
+            <span class="coach-remaining-text" id="remaining-count" aria-live="polite">
+                {{ remaining_messages }} of {{ daily_limit }} messages remaining today
+            </span>
+            <form id="new-chat-form" method="post" action="{% url 'coach_reset' %}" style="margin: 0;">
+                {% csrf_token %}
+                <input type="hidden" name="mode" value="{{ mode }}">
+                <button type="submit" class="btn btn-outline btn-sm">New chat</button>
+            </form>
+        </div>
+    </header>
+
+    <!-- Notices (Hidden by default, no empty red box) -->
+    <div id="config-notice" class="coach-notice coach-notice-warning" role="alert" hidden>
+        <span id="config-notice-text">AI Coach is not configured. Please set the GEMINI_API_KEY environment variable.</span>
+        <button type="button" class="alert-close" aria-label="Dismiss" onclick="this.parentElement.hidden = true;">&times;</button>
     </div>
 
-    <nav aria-label="Choose a coaching mode" style="display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4);">
-        <a href="{% url 'coach' %}?mode=resume" class="btn {% if mode == 'resume' %}btn-primary{% else %}btn-secondary{% endif %}" {% if mode == 'resume' %}aria-current="page"{% endif %}>Resume Builder</a>
-        <a href="{% url 'coach' %}?mode=interview" class="btn {% if mode == 'interview' %}btn-primary{% else %}btn-secondary{% endif %}" {% if mode == 'interview' %}aria-current="page"{% endif %}>Job Preparation</a>
-        <a href="{% url 'coach' %}?mode=english" class="btn {% if mode == 'english' %}btn-primary{% else %}btn-secondary{% endif %}" {% if mode == 'english' %}aria-current="page"{% endif %}>English Practice</a>
-    </nav>
+    <div id="chat-error" class="coach-notice coach-notice-error" role="alert" hidden>
+        <span id="chat-error-text"></span>
+        <button type="button" id="retry-btn" class="coach-notice-retry">Retry</button>
+    </div>
 
-    <section class="card" aria-label="Chat with your AI Coach">
-        <div id="chat-window" role="log" aria-live="polite" aria-relevant="additions" style="height: min(55vh, 560px); min-height: 260px; overflow-y: auto; padding: var(--space-2); border: 1px solid var(--border-subtle); border-radius: var(--radius); margin-bottom: var(--space-4);">
-            {% for message in chat_messages %}
-                <article class="card" data-role="{{ message.role }}" style="max-width: 90%; margin-bottom: var(--space-3); {% if message.role == 'user' %}margin-left: auto; background: var(--accent-blue-light);{% endif %}">
-                    <strong style="display: block; margin-bottom: var(--space-1);">
-                        {% if message.role == 'user' %}You{% else %}AI Coach{% endif %}
-                    </strong>
-                    <div class="message-content" style="white-space: pre-wrap; overflow-wrap: anywhere;">{{ message.content }}</div>
-                    {% if message.role == 'assistant' and mode == 'resume' %}
-                        <button type="button" class="btn btn-secondary btn-sm copy-reply" style="margin-top: var(--space-2);">Copy</button>
-                    {% endif %}
+    <!-- Scrollable Message Area -->
+    <div id="chat-window" class="chat-scroll-area" role="log" aria-live="polite" aria-relevant="additions">
+        {% for message in chat_messages %}
+            {% if "not configured" in message.content|lower or "gemini_api_key" in message.content|lower %}
+                <div data-preset-not-configured="true" hidden></div>
+            {% else %}
+                <article class="chat-row chat-row-{{ message.role }}" data-role="{{ message.role }}">
+                    <div class="chat-avatar chat-avatar-{{ message.role }}" aria-hidden="true">
+                        {% if message.role == 'user' %}{{ user.username|slice:":1"|upper }}{% else %}AI{% endif %}
+                    </div>
+                    <div class="chat-bubble-container">
+                        <div class="chat-bubble chat-bubble-{{ message.role }}">
+                            <div class="message-content" data-raw="{{ message.content }}">{{ message.content }}</div>
+                        </div>
+                        <div class="chat-actions">
+                            <span class="chat-timestamp">{{ message.created_on|date:"h:i A" }}</span>
+                            {% if message.role == 'assistant' %}
+                                <button type="button" class="copy-button" aria-label="Copy reply">Copy</button>
+                            {% endif %}
+                        </div>
+                    </div>
                 </article>
-            {% empty %}
-                <p id="empty-chat" style="color: var(--text-muted); text-align: center; padding: var(--space-6);">
-                    Start a conversation by sending a message below.
-                </p>
-            {% endfor %}
+            {% endif %}
+        {% endfor %}
+
+        <!-- Empty State with 3 Example Prompt Chips per Mode -->
+        <div id="empty-state" class="coach-empty-state" {% if chat_messages %}hidden{% endif %}>
+            <div class="coach-empty-title">
+                {% if mode == 'resume' %}Resume Builder
+                {% elif mode == 'interview' %}Job Preparation
+                {% else %}English Practice{% endif %}
+            </div>
+            <p class="coach-empty-desc">
+                {% if mode == 'resume' %}Generate strong bullet points, review structure, or tailor your resume for a job.
+                {% elif mode == 'interview' %}Practice behavioral questions, technical scenarios, and structured answers.
+                {% else %}Practice spoken and written professional English for workplace communication.{% endif %}
+            </p>
+            <div class="prompt-chips" role="group" aria-label="Example prompts">
+                {% if mode == 'resume' %}
+                    <button type="button" class="prompt-chip" data-prompt="Highlight my 3 years of Python and Django experience in bullet points">
+                        Highlight my 3 years of Python and Django experience in bullet points
+                    </button>
+                    <button type="button" class="prompt-chip" data-prompt="Write a professional summary for a junior backend developer">
+                        Write a professional summary for a junior backend developer
+                    </button>
+                    <button type="button" class="prompt-chip" data-prompt="How can I explain a career transition into software engineering?">
+                        How can I explain a career transition into software engineering?
+                    </button>
+                {% elif mode == 'interview' %}
+                    <button type="button" class="prompt-chip" data-prompt="Ask me 3 behavioral questions for a software engineer role">
+                        Ask me 3 behavioral questions for a software engineer role
+                    </button>
+                    <button type="button" class="prompt-chip" data-prompt="How should I structure my answer using the STAR method?">
+                        How should I structure my answer using the STAR method?
+                    </button>
+                    <button type="button" class="prompt-chip" data-prompt="Give me a mock technical question on REST APIs and databases">
+                        Give me a mock technical question on REST APIs and databases
+                    </button>
+                {% else %}
+                    <button type="button" class="prompt-chip" data-prompt="Help me introduce myself professionally in an English interview">
+                        Help me introduce myself professionally in an English interview
+                    </button>
+                    <button type="button" class="prompt-chip" data-prompt="Correct my grammar: I am having 2 years experience in IT field">
+                        Correct my grammar: I am having 2 years experience in IT field
+                    </button>
+                    <button type="button" class="prompt-chip" data-prompt="Practice polite phrases for asking an interviewer to clarify a question">
+                        Practice polite phrases for asking an interviewer to clarify a question
+                    </button>
+                {% endif %}
+            </div>
         </div>
 
-        <p id="thinking-indicator" role="status" hidden style="color: var(--text-secondary); margin-bottom: var(--space-2);">Thinking...</p>
-        <p id="chat-error" class="alert alert-danger" role="alert" hidden></p>
+        <!-- Animated Typing Dots (Hidden by default) -->
+        <div id="typing-indicator" class="chat-row chat-row-assistant" hidden role="status" aria-label="AI is responding">
+            <div class="chat-avatar chat-avatar-assistant" aria-hidden="true">AI</div>
+            <div class="typing-dots">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+            </div>
+        </div>
+    </div>
 
+    <!-- Input Area -->
+    <div class="coach-input-area">
         <form id="chat-form" data-send-url="{% url 'coach_send' %}">
             {% csrf_token %}
             <input type="hidden" name="mode" value="{{ mode }}">
-            <div class="form-group">
-                <label for="chat-message">Your message</label>
-                <textarea id="chat-message" name="message" rows="3" maxlength="500" required placeholder="Type your message (up to 500 characters)"></textarea>
-                <span class="helptext"><span id="character-count">0</span>/500 characters</span>
+            <div class="coach-input-wrapper">
+                <label for="chat-message" class="visually-hidden" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;">Type your message</label>
+                <textarea id="chat-message" name="message" class="coach-textarea" rows="1" maxlength="500" required placeholder="Type your message (Enter sends, Shift+Enter for new line)"></textarea>
+                <button type="submit" class="coach-send-btn" id="send-button" aria-label="Send message">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
             </div>
-            <div style="display: flex; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap;">
-                <button type="submit" class="btn btn-primary" id="send-button">Send</button>
-                <button type="submit" form="new-chat-form" class="btn btn-secondary">New chat</button>
+            <div class="coach-input-footer">
+                <span class="coach-counter" id="char-counter"><span id="character-count">0</span>/500</span>
             </div>
         </form>
-
-        <form id="new-chat-form" method="post" action="{% url 'coach_reset' %}" hidden>
-            {% csrf_token %}
-            <input type="hidden" name="mode" value="{{ mode }}">
-        </form>
-    </section>
-</section>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -70,122 +149,351 @@
     const form = document.getElementById('chat-form');
     const input = document.getElementById('chat-message');
     const chatWindow = document.getElementById('chat-window');
-    const thinking = document.getElementById('thinking-indicator');
+    const typing = document.getElementById('typing-indicator');
     const errorBox = document.getElementById('chat-error');
+    const errorText = document.getElementById('chat-error-text');
+    const retryBtn = document.getElementById('retry-btn');
+    const configNotice = document.getElementById('config-notice');
     const sendButton = document.getElementById('send-button');
     const characterCount = document.getElementById('character-count');
     const remainingCount = document.getElementById('remaining-count');
-    const mode = form.elements.mode.value;
+    const emptyState = document.getElementById('empty-state');
+    const mode = form.elements.mode ? form.elements.mode.value : 'resume';
+    const userInitial = "{{ user.username|slice:':1'|upper|default:'U' }}";
 
-    function addMessage(role, text) {
-        const article = document.createElement('article');
-        article.className = 'card';
-        article.dataset.role = role;
-        article.style.maxWidth = '90%';
-        article.style.marginBottom = 'var(--space-3)';
-        if (role === 'user') {
-            article.style.marginLeft = 'auto';
-            article.style.background = 'var(--accent-blue-light)';
-        }
+    let lastSentMessage = '';
 
-        const heading = document.createElement('strong');
-        heading.textContent = role === 'user' ? 'You' : 'AI Coach';
-        heading.style.display = 'block';
-        heading.style.marginBottom = 'var(--space-1)';
+    // Check if initial messages triggered not configured notice
+    if (document.querySelector('[data-preset-not-configured="true"]')) {
+        configNotice.hidden = false;
+    }
 
-        const content = document.createElement('div');
-        content.className = 'message-content';
-        content.textContent = text;
-        content.style.whiteSpace = 'pre-wrap';
-        content.style.overflowWrap = 'anywhere';
-
-        article.append(heading, content);
-        if (role === 'assistant' && mode === 'resume') {
-            const copyButton = document.createElement('button');
-            copyButton.type = 'button';
-            copyButton.className = 'btn btn-secondary btn-sm copy-reply';
-            copyButton.textContent = 'Copy';
-            copyButton.style.marginTop = 'var(--space-2)';
-            article.append(copyButton);
-        }
-
-        const emptyMessage = document.getElementById('empty-chat');
-        if (emptyMessage) {
-            emptyMessage.remove();
-        }
-        chatWindow.append(article);
+    function scrollToBottom() {
         chatWindow.scrollTop = chatWindow.scrollHeight;
     }
 
-    input.addEventListener('input', function () {
+    function autoGrow() {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+    }
+
+    function updateCounter() {
         characterCount.textContent = String(input.value.length);
+    }
+
+    function formatTime(date) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Helper: append inline text with **bold** spans purely via createElement and textContent
+    function appendInlineWithBold(parent, text) {
+        const regex = /(\*\*[^*]+\*\*)/g;
+        let lastIdx = 0;
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+            if (match.index > lastIdx) {
+                parent.appendChild(document.createTextNode(text.substring(lastIdx, match.index)));
+            }
+            const strong = document.createElement('strong');
+            strong.textContent = match[1].slice(2, -2);
+            parent.appendChild(strong);
+            lastIdx = regex.lastIndex;
+        }
+        if (lastIdx < text.length) {
+            parent.appendChild(document.createTextNode(text.substring(lastIdx)));
+        }
+    }
+
+    // Render structured assistant text (paragraphs, bullet lists, numbered lists, bold)
+    // NEVER using innerHTML
+    function renderFormattedContent(container, rawText) {
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+        const normalized = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        const lines = normalized.split('\n');
+        let currentList = null;
+        let currentListType = null;
+        let paraLines = [];
+
+        function flushPara() {
+            if (paraLines.length > 0) {
+                const p = document.createElement('p');
+                const joined = paraLines.join(' ');
+                appendInlineWithBold(p, joined);
+                container.appendChild(p);
+                paraLines = [];
+            }
+        }
+
+        function flushList() {
+            if (currentList) {
+                container.appendChild(currentList);
+                currentList = null;
+                currentListType = null;
+            }
+        }
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) {
+                flushPara();
+                flushList();
+                continue;
+            }
+
+            const bulletMatch = line.match(/^[-*•]\s+(.*)$/);
+            const numberMatch = line.match(/^\d+[.)]\s+(.*)$/);
+
+            if (bulletMatch) {
+                flushPara();
+                if (currentListType !== 'ul') {
+                    flushList();
+                    currentList = document.createElement('ul');
+                    currentListType = 'ul';
+                }
+                const li = document.createElement('li');
+                appendInlineWithBold(li, bulletMatch[1]);
+                currentList.appendChild(li);
+            } else if (numberMatch) {
+                flushPara();
+                if (currentListType !== 'ol') {
+                    flushList();
+                    currentList = document.createElement('ol');
+                    currentListType = 'ol';
+                }
+                const li = document.createElement('li');
+                appendInlineWithBold(li, numberMatch[1]);
+                currentList.appendChild(li);
+            } else {
+                flushList();
+                paraLines.push(line);
+            }
+        }
+
+        flushPara();
+        flushList();
+    }
+
+    // Format pre-existing assistant replies on page load
+    const existingAssistantMessages = chatWindow.querySelectorAll('.chat-row-assistant .message-content');
+    existingAssistantMessages.forEach(function (el) {
+        const raw = el.getAttribute('data-raw') || el.textContent;
+        renderFormattedContent(el, raw);
     });
 
+    function addMessageBubble(role, text) {
+        if (emptyState) {
+            emptyState.hidden = true;
+        }
+
+        const article = document.createElement('article');
+        article.className = 'chat-row chat-row-' + role;
+        article.dataset.role = role;
+
+        const avatar = document.createElement('div');
+        avatar.className = 'chat-avatar chat-avatar-' + role;
+        avatar.setAttribute('aria-hidden', 'true');
+        avatar.textContent = role === 'user' ? userInitial : 'AI';
+
+        const bubbleContainer = document.createElement('div');
+        bubbleContainer.className = 'chat-bubble-container';
+
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble chat-bubble-' + role;
+
+        const content = document.createElement('div');
+        content.className = 'message-content';
+
+        if (role === 'assistant') {
+            renderFormattedContent(content, text);
+        } else {
+            content.textContent = text;
+        }
+
+        bubble.appendChild(content);
+        bubbleContainer.appendChild(bubble);
+
+        const actions = document.createElement('div');
+        actions.className = 'chat-actions';
+
+        const timestamp = document.createElement('span');
+        timestamp.className = 'chat-timestamp';
+        timestamp.textContent = formatTime(new Date());
+        actions.appendChild(timestamp);
+
+        if (role === 'assistant') {
+            const copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
+            copyBtn.className = 'copy-button';
+            copyBtn.textContent = 'Copy';
+            copyBtn.setAttribute('aria-label', 'Copy reply');
+            actions.appendChild(copyBtn);
+        }
+
+        bubbleContainer.appendChild(actions);
+        article.appendChild(avatar);
+        article.appendChild(bubbleContainer);
+
+        // Insert before typing indicator
+        chatWindow.insertBefore(article, typing);
+        scrollToBottom();
+    }
+
+    // Input listeners
+    input.addEventListener('input', function () {
+        updateCounter();
+        autoGrow();
+    });
+
+    input.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+            } else {
+                form.dispatchEvent(new Event('submit', { cancelable: true }));
+            }
+        }
+    });
+
+    // Copy button handling via delegation
     chatWindow.addEventListener('click', async function (event) {
-        const button = event.target.closest('.copy-reply');
+        const button = event.target.closest('.copy-button');
         if (!button) {
             return;
         }
-        const content = button.parentElement.querySelector('.message-content');
+        const row = button.closest('.chat-row-assistant');
+        if (!row) {
+            return;
+        }
+        const contentEl = row.querySelector('.message-content');
+        if (!contentEl) {
+            return;
+        }
         try {
-            await navigator.clipboard.writeText(content.textContent);
+            await navigator.clipboard.writeText(contentEl.textContent);
             button.textContent = 'Copied';
-        } catch (error) {
-            errorBox.textContent = 'Could not copy the reply. Please select and copy it manually.';
+            setTimeout(function () {
+                button.textContent = 'Copy';
+            }, 2000);
+        } catch (err) {
+            errorText.textContent = 'Could not copy the reply. Please select and copy it manually.';
             errorBox.hidden = false;
         }
     });
 
-    form.addEventListener('submit', async function (event) {
+    // Prompt chips
+    document.addEventListener('click', function (event) {
+        const chip = event.target.closest('.prompt-chip');
+        if (!chip) {
+            return;
+        }
+        const promptText = chip.getAttribute('data-prompt');
+        if (promptText) {
+            input.value = promptText;
+            updateCounter();
+            autoGrow();
+            input.focus();
+        }
+    });
+
+    // Retry handling
+    retryBtn.addEventListener('click', function () {
+        if (!lastSentMessage) {
+            return;
+        }
+        errorBox.hidden = true;
+        sendMessage(lastSentMessage, true);
+    });
+
+    async function sendMessage(message, isRetry) {
+        if (!message) {
+            return;
+        }
+
+        errorBox.hidden = true;
+        lastSentMessage = message;
+
+        if (!isRetry) {
+            addMessageBubble('user', message);
+            input.value = '';
+            input.style.height = '38px';
+            updateCounter();
+        }
+
+        typing.hidden = false;
+        sendButton.disabled = true;
+        scrollToBottom();
+
+        try {
+            const csrfTokenInput = form.querySelector('[name=csrfmiddlewaretoken]');
+            const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
+
+            const response = await fetch(form.dataset.sendUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ mode: mode, message: message })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                const errMsg = result.error || result.reply || 'The message could not be sent.';
+                throw new Error(errMsg);
+            }
+
+            const reply = result.reply || '';
+            const isNotConfigured = reply.toLowerCase().includes('not configured') ||
+                                    reply.toLowerCase().includes('gemini_api_key') ||
+                                    (!result.success && reply.toLowerCase().includes('configured'));
+
+            if (isNotConfigured) {
+                // Show "not configured" once as a notice, not as chat bubbles
+                configNotice.hidden = false;
+            } else if (typeof reply === 'string' && reply.length > 0) {
+                addMessageBubble('assistant', reply);
+            } else if (!result.success) {
+                throw new Error(result.error || 'The message could not be sent.');
+            }
+
+            if (typeof result.remaining === 'number' && remainingCount) {
+                remainingCount.textContent = result.remaining + ' of {{ daily_limit }} messages remaining today';
+            }
+        } catch (error) {
+            const errStr = error.message || 'The message could not be sent.';
+            if (errStr.toLowerCase().includes('not configured') || errStr.toLowerCase().includes('gemini_api_key')) {
+                configNotice.hidden = false;
+            } else {
+                errorText.textContent = errStr;
+                errorBox.hidden = false;
+            }
+        } finally {
+            typing.hidden = true;
+            sendButton.disabled = false;
+            input.focus();
+            scrollToBottom();
+        }
+    }
+
+    form.addEventListener('submit', function (event) {
         event.preventDefault();
         const message = input.value.trim();
         if (!message) {
             return;
         }
         if (message.length > 500) {
-            errorBox.textContent = 'Your message must be 500 characters or fewer.';
+            errorText.textContent = 'Your message must be 500 characters or fewer.';
             errorBox.hidden = false;
             return;
         }
-
-        errorBox.hidden = true;
-        addMessage('user', message);
-        input.value = '';
-        characterCount.textContent = '0';
-        thinking.hidden = false;
-        sendButton.disabled = true;
-
-        try {
-            const response = await fetch(form.dataset.sendUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: JSON.stringify({mode: mode, message: message})
-            });
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.error || result.reply || 'The message could not be sent.');
-            }
-
-            if (typeof result.reply === 'string') {
-                addMessage('assistant', result.reply);
-            } else if (!result.success) {
-                throw new Error(result.error || 'The message could not be sent.');
-            }
-            if (typeof result.remaining === 'number') {
-                remainingCount.textContent = result.remaining + ' of {{ daily_limit }} messages remaining today';
-            }
-        } catch (error) {
-            errorBox.textContent = error.message || 'The message could not be sent. Please try again.';
-            errorBox.hidden = false;
-        } finally {
-            thinking.hidden = true;
-            sendButton.disabled = false;
-            input.focus();
-        }
+        sendMessage(message, false);
     });
+
+    scrollToBottom();
 })();
 </script>
 {% endblock %}

@@ -5,10 +5,10 @@
 {% block content %}
 <div style="margin-bottom: var(--space-6);">
     <h1>Candidate dashboard</h1>
-    <p style="color: var(--text-secondary); margin: 0;">Welcome, <strong>{{ user.username }}</strong></p>
+    <p style="color: var(--text-secondary); margin: 0;">Account: <strong>{{ user.username }}</strong></p>
 </div>
 
-<!-- Compact Stat Tiles -->
+<!-- Stat Tiles -->
 <div class="stats-grid">
     <div class="stat-tile">
         <div class="stat-value">{{ stats.total }}</div>
@@ -25,15 +25,15 @@
 </div>
 
 <div class="two-col-layout">
-    <!-- Left Column: Applications & Interviews -->
+    <!-- Left Column: Coach & Applications -->
     <div>
-        <!-- AI Coach Banner -->
-        <div class="card" style="background: #eff6ff; border-color: #bfdbfe; margin-bottom: var(--space-6);">
+        <!-- AI Coach Card -->
+        <div class="card" style="border-left: 4px solid var(--accent-blue); margin-bottom: var(--space-4);">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3);">
                 <div>
-                    <h3 style="color: var(--brand-navy); font-size: 18px; margin-bottom: var(--space-1);">Practice with your AI Coach</h3>
+                    <h3 style="font-size: 16px; margin-bottom: 4px; color: var(--brand-navy);">Practice with AI Coach</h3>
                     <p style="color: var(--text-secondary); font-size: var(--font-small); margin: 0;">
-                        Build custom resume points, practice mock interview questions, or polish your English conversation skills.
+                        Structure resume points, practice interview questions, or improve English communication.
                     </p>
                 </div>
                 <a href="{% url 'coach' %}" class="btn btn-primary btn-sm">Launch AI Coach</a>
@@ -44,8 +44,8 @@
         <div class="card">
             <h3>Upcoming interviews</h3>
             {% for i in upcoming_interviews %}
-                <div style="border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: var(--space-3); margin-bottom: var(--space-3); background: var(--bg-surface);">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-1);">
+                <div style="border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: var(--space-3); margin-bottom: var(--space-3); background-color: var(--bg-surface);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-1); gap: var(--space-2); flex-wrap: wrap;">
                         <strong>{{ i.application.job.title }}</strong>
                         <span class="badge badge-scheduled">Scheduled</span>
                     </div>
@@ -71,7 +71,7 @@
             </div>
 
             {% for app in recent_applications %}
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding: var(--space-3) 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding: var(--space-3) 0; gap: var(--space-2); flex-wrap: wrap;">
                     <div>
                         <div style="font-weight: 600; margin-bottom: 2px;">
                             <a href="{% url 'job_detail' app.job.pk %}">{{ app.job.title }}</a>
@@ -84,7 +84,7 @@
                 </div>
             {% empty %}
                 <p style="color: var(--text-muted); font-size: var(--font-small); margin: 0;">
-                    You have not submitted any job applications yet. <a href="{% url 'job_list' %}">Browse available jobs</a>
+                    No job applications submitted yet. <a href="{% url 'job_list' %}">Browse available jobs</a>
                 </p>
             {% endfor %}
         </div>
@@ -95,7 +95,7 @@
         <div class="card">
             <h3>Recommended jobs</h3>
             <p style="color: var(--text-muted); font-size: var(--font-small); margin-bottom: var(--space-4);">
-                Based on your listed skills and experience
+                Based on your listed skills and profile details
             </p>
 
             {% for job in recommended_jobs %}
@@ -114,7 +114,7 @@
                 </div>
             {% empty %}
                 <p style="color: var(--text-muted); font-size: var(--font-small); margin: 0;">
-                    Add your skills in <a href="{% url 'profile' %}">Profile settings</a> to see personalized recommendations.
+                    Add your skills in <a href="{% url 'profile' %}">Profile settings</a> to see recommendations.
                 </p>
             {% endfor %}
         </div>

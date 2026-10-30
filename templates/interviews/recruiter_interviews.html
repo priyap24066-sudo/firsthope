@@ -9,16 +9,16 @@
         <p style="color: var(--text-secondary); margin: 0;">Manage upcoming and completed candidate interviews.</p>
     </div>
     <div>
-        <a href="{% url 'my_jobs' %}" class="btn btn-secondary btn-sm">View my jobs</a>
+        <a href="{% url 'my_jobs' %}" class="btn btn-outline btn-sm">View my jobs</a>
     </div>
 </div>
 
-<div style="display: flex; flex-direction: column; gap: var(--space-4);">
+<div style="display: flex; flex-direction: column; gap: var(--space-3);">
     {% for i in interviews %}
         <article class="card" style="margin-bottom: 0;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-3);">
                 <div>
-                    <h3 style="font-size: 18px; margin-bottom: var(--space-1);">
+                    <h3 style="font-size: 16px; margin-bottom: 4px;">
                         {{ i.application.candidate.username }}
                         <span style="font-size: var(--font-small); color: var(--text-muted); font-weight: normal;">
                             for <strong>{{ i.application.job.title }}</strong>
@@ -41,17 +41,17 @@
             </div>
 
             {% if i.notes %}
-                <div style="background: var(--bg-page); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: var(--space-3); font-size: var(--font-small); margin-bottom: var(--space-3);">
+                <div style="background-color: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: var(--space-3); font-size: var(--font-small); margin-bottom: var(--space-3);">
                     <strong>Notes:</strong> {{ i.notes }}
                 </div>
             {% endif %}
 
             {% if i.status == 'scheduled' %}
                 <div style="border-top: 1px solid var(--border-subtle); padding-top: var(--space-3); display: flex; justify-content: flex-end; gap: var(--space-2);">
-                    <form method="post" action="{% url 'update_interview_status' i.pk %}" style="display: inline-flex; gap: var(--space-2);">
+                    <form method="post" action="{% url 'update_interview_status' i.pk %}" style="display: inline-flex; gap: var(--space-2); margin: 0;">
                         {% csrf_token %}
-                        <button type="submit" name="status" value="completed" class="btn btn-secondary btn-sm" style="color: #03543f;">Mark completed</button>
-                        <button type="submit" name="status" value="cancelled" class="btn btn-secondary btn-sm" style="color: #9b1c1c;">Cancel interview</button>
+                        <button type="submit" name="status" value="completed" class="btn btn-outline btn-sm" style="color: #065f46;">Mark completed</button>
+                        <button type="submit" name="status" value="cancelled" class="btn btn-outline btn-sm" style="color: #991b1b;">Cancel interview</button>
                     </form>
                 </div>
             {% endif %}
@@ -59,7 +59,7 @@
     {% empty %}
         <div class="card" style="text-align: center; padding: var(--space-8); color: var(--text-muted);">
             <h3>No interviews scheduled yet</h3>
-            <p style="margin-bottom: var(--space-4);">Shortlist applicants from your job posts to schedule interviews with candidates.</p>
+            <p style="margin-bottom: var(--space-4); color: var(--text-secondary);">Shortlist applicants from your job posts to schedule interviews with candidates.</p>
             <a href="{% url 'my_jobs' %}" class="btn btn-primary btn-sm">Review applicants</a>
         </div>
     {% endfor %}
