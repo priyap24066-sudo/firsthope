@@ -191,7 +191,7 @@ else:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 # Authentication & OTP settings
-LOGIN_OTP_REQUIRED = os.environ.get('LOGIN_OTP_REQUIRED', 'True').lower() in ('true', '1')
+LOGIN_OTP_REQUIRED = os.environ.get('LOGIN_OTP_REQUIRED', 'False').lower() in ('true', '1')
 SMS_PROVIDER = os.environ.get('SMS_PROVIDER', '')
 
 # AI Coach settings

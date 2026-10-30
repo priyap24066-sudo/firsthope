@@ -1,6 +1,6 @@
 from django.contrib.admin.sites import AdminSite
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from unittest.mock import patch
 
@@ -61,6 +61,7 @@ class RegistrationTests(TestCase):
         self.assertTrue(user.is_active)
 
     @patch('accounts.views.send_email_otp')
+    @override_settings(LOGIN_OTP_REQUIRED=True)
     def test_active_user_must_verify_login_otp(self, send_otp):
         user = User.objects.create_user(
             username='otp_login', email='otp_login@example.com', password=PASSWORD,
