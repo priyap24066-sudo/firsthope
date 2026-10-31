@@ -491,6 +491,176 @@ textarea:focus {
   margin-top: 4px;
 }
 
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-input-wrapper input {
+  padding-right: 44px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.password-toggle:hover {
+  color: var(--text-primary);
+}
+
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.password-strength {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.password-strength-meter {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.password-strength-meter span {
+  height: 4px;
+  border-radius: 2px;
+  background-color: var(--border-subtle);
+}
+
+.password-strength[data-strength="weak"] .password-strength-meter .is-filled {
+  background-color: var(--status-rejected-text);
+}
+
+.password-strength[data-strength="fair"] .password-strength-meter .is-filled {
+  background-color: var(--status-pending-text);
+}
+
+.password-strength[data-strength="good"] .password-strength-meter .is-filled {
+  background-color: var(--accent-blue);
+}
+
+.password-strength[data-strength="strong"] .password-strength-meter .is-filled {
+  background-color: var(--status-hired-text);
+}
+
+.password-strength-label {
+  min-width: 92px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+.password-strength[data-strength="weak"] .password-strength-label {
+  color: var(--status-rejected-text);
+}
+
+.password-strength[data-strength="fair"] .password-strength-label {
+  color: var(--status-pending-text);
+}
+
+.password-strength[data-strength="good"] .password-strength-label {
+  color: var(--accent-blue);
+}
+
+.password-strength[data-strength="strong"] .password-strength-label {
+  color: var(--status-hired-text);
+}
+
+.password-requirements {
+  display: grid;
+  gap: 2px;
+  margin: var(--space-2) 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.password-requirements .is-met {
+  color: var(--status-hired-text);
+}
+
+.password-suggest-link {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.generated-password {
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  background-color: var(--bg-subtle);
+}
+
+.generated-password[hidden] {
+  display: none;
+}
+
+.generated-password-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.generated-password-value code {
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.generated-password-note {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.password-match-message {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.password-match-message:empty {
+  display: none;
+}
+
+.password-match-message.is-match {
+  color: var(--status-hired-text);
+}
+
+.password-match-message.is-mismatch {
+  color: var(--status-rejected-text);
+}
+
 .errorlist {
   list-style: none;
   padding: 0;

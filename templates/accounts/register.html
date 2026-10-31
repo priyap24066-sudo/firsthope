@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Create Account - FirstHope{% endblock %}
 
@@ -61,13 +62,61 @@
             <!-- Passwords -->
             <div class="form-group">
                 <label for="id_password1">Password</label>
-                <input type="password" id="id_password1" name="password1" required placeholder="Create a secure password">
+                <div class="password-input-wrapper">
+                    <input type="password" id="id_password1" name="password1" required placeholder="Create a secure password" autocomplete="new-password" data-password-primary>
+                    <button class="password-toggle" type="button" aria-label="Show password" aria-controls="id_password1">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-eye-open>
+                            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-eye-closed hidden>
+                            <path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8"></path>
+                            <path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a15.7 15.7 0 0 1-3.1 3.9M6.2 6.2C3.5 8 2 12 2 12s3.5 7 10 7c1 0 2-.2 2.9-.5"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="password-strength" aria-label="Password strength">
+                    <div class="password-strength-meter" aria-hidden="true">
+                        <span data-strength-segment></span>
+                        <span data-strength-segment></span>
+                        <span data-strength-segment></span>
+                        <span data-strength-segment></span>
+                    </div>
+                    <span class="password-strength-label" aria-live="polite" aria-atomic="true" data-strength-label>Password strength</span>
+                </div>
+                <ul class="password-requirements" aria-label="Password requirements">
+                    <li data-password-requirement="length">At least 8 characters</li>
+                    <li data-password-requirement="case">Uppercase and lowercase letters</li>
+                    <li data-password-requirement="number">A number</li>
+                    <li data-password-requirement="symbol">A symbol (e.g. ! @ # $)</li>
+                </ul>
+                <a class="password-suggest-link" href="#" data-suggest-password>Suggest a strong password</a>
+                <div class="generated-password" data-generated-password hidden>
+                    <div class="generated-password-value">
+                        <code data-generated-value></code>
+                        <button class="btn btn-outline btn-sm" type="button" data-copy-password>Copy</button>
+                    </div>
+                    <span class="generated-password-note">Save it somewhere safe</span>
+                </div>
                 {% if form.password1.errors %}<div class="errorlist">{{ form.password1.errors }}</div>{% endif %}
             </div>
 
             <div class="form-group">
                 <label for="id_password2">Confirm password</label>
-                <input type="password" id="id_password2" name="password2" required placeholder="Re-enter your password">
+                <div class="password-input-wrapper">
+                    <input type="password" id="id_password2" name="password2" required placeholder="Re-enter your password" autocomplete="new-password" data-password-confirm>
+                    <button class="password-toggle" type="button" aria-label="Show password" aria-controls="id_password2">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-eye-open>
+                            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-eye-closed hidden>
+                            <path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8"></path>
+                            <path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a15.7 15.7 0 0 1-3.1 3.9M6.2 6.2C3.5 8 2 12 2 12s3.5 7 10 7c1 0 2-.2 2.9-.5"></path>
+                        </svg>
+                    </button>
+                </div>
+                <span class="password-match-message" aria-live="polite" aria-atomic="true" data-password-match></span>
                 {% if form.password2.errors %}<div class="errorlist">{{ form.password2.errors }}</div>{% endif %}
             </div>
 
@@ -81,4 +130,8 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/password-enhancements.js' %}" defer></script>
 {% endblock %}
