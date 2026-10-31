@@ -11,7 +11,7 @@ from django.urls import reverse
 
 from .admin import RecruiterProfileAdmin, check_recruiter_domain_match
 from .email_delivery import EMAIL_SEND_FAILURE_MESSAGE
-from .models import CandidateProfile, RecruiterDocument, RecruiterProfile, User
+from .models import CandidateProfile, OTPCode, RecruiterDocument, RecruiterProfile, User
 from .otp_sender import send_email_otp
 
 PASSWORD = 'Str0ng!Pass#2026'
@@ -51,6 +51,18 @@ class EmailConfigurationTests(TestCase):
             configured['EMAIL_BACKEND'],
             'django.core.mail.backends.smtp.EmailBackend',
         )
+
+    def test_registration_otp_is_required_by_default(self):
+        with patch.dict(os.environ, {}, clear=True):
+            configured = runpy.run_path(str(self.settings_path))
+
+        self.assertTrue(configured['REGISTER_OTP_REQUIRED'])
+
+    def test_registration_otp_setting_reads_environment(self):
+        for value, expected in (('True', True), ('False', False)):
+            with self.subTest(value=value):
+                configured = self.load_settings({'REGISTER_OTP_REQUIRED': value})
+                self.assertIs(configured['REGISTER_OTP_REQUIRED'], expected)
 
 
 class EmailDeliveryTests(TestCase):
@@ -101,6 +113,42 @@ class RegistrationTests(TestCase):
         user = User.objects.get(username='rec_test')
         self.assertEqual(user.role, 'recruiter')
         self.assertTrue(RecruiterProfile.objects.filter(user=user).exists())
+
+    @override_settings(REGISTER_OTP_REQUIRED=True)
+    @patch('accounts.views.send_email_otp', return_value=True)
+    def test_registration_requires_otp_when_setting_enabled(self, send_otp):
+        response = self.client.post(reverse('register'), {
+            'username': 'otp_required',
+            'email': 'otp_required@example.com',
+            'role': 'candidate',
+            'password1': PASSWORD,
+            'password2': PASSWORD,
+        })
+
+        user = User.objects.get(username='otp_required')
+        self.assertFalse(user.is_active)
+        self.assertTrue(OTPCode.objects.filter(user=user, purpose=OTPCode.Purpose.REGISTER).exists())
+        send_otp.assert_called_once()
+        self.assertRedirects(response, reverse('verify_otp'))
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    @override_settings(REGISTER_OTP_REQUIRED=False)
+    @patch('accounts.views.send_email_otp')
+    def test_registration_skips_otp_when_setting_disabled(self, send_otp):
+        response = self.client.post(reverse('register'), {
+            'username': 'otp_not_required',
+            'email': 'otp_not_required@example.com',
+            'role': 'candidate',
+            'password1': PASSWORD,
+            'password2': PASSWORD,
+        })
+
+        user = User.objects.get(username='otp_not_required')
+        self.assertTrue(user.is_active)
+        self.assertFalse(OTPCode.objects.filter(user=user).exists())
+        send_otp.assert_not_called()
+        self.assertRedirects(response, reverse('dashboard'))
+        self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
 
     def test_registration_shows_friendly_message_if_email_fails(self):
         with patch(

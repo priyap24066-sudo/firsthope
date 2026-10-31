@@ -48,25 +48,30 @@ def register(request):
         form = RegisterForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
-            user.is_active = False  # Account stays inactive until OTP verification
+            user.is_active = not settings.REGISTER_OTP_REQUIRED
             user.save()
 
-            # Create & send registration OTP
-            otp, raw_code = OTPCode.create_otp(user=user, purpose=OTPCode.Purpose.REGISTER)
-            email_sent = send_email_otp(user, raw_code, purpose='register')
+            if settings.REGISTER_OTP_REQUIRED:
+                # Create & send registration OTP
+                otp, raw_code = OTPCode.create_otp(user=user, purpose=OTPCode.Purpose.REGISTER)
+                email_sent = send_email_otp(user, raw_code, purpose='register')
 
-            request.session['pending_otp_user'] = user.id
-            request.session['otp_purpose'] = OTPCode.Purpose.REGISTER
-            request.session['otp_channel'] = 'email'
+                request.session['pending_otp_user'] = user.id
+                request.session['otp_purpose'] = OTPCode.Purpose.REGISTER
+                request.session['otp_channel'] = 'email'
 
-            if email_sent:
-                messages.success(
-                    request,
-                    f'Account created! We have sent a 6-digit verification code to {user.email}. Please verify below.',
-                )
-            else:
-                messages.error(request, EMAIL_SEND_FAILURE_MESSAGE)
-            return redirect('verify_otp')
+                if email_sent:
+                    messages.success(
+                        request,
+                        f'Account created! We have sent a 6-digit verification code to {user.email}. Please verify below.',
+                    )
+                else:
+                    messages.error(request, EMAIL_SEND_FAILURE_MESSAGE)
+                return redirect('verify_otp')
+
+            login(request, user)
+            messages.success(request, 'Account created successfully. Welcome to FirstHope!')
+            return redirect('dashboard')
     else:
         form = RegisterForm()
 
