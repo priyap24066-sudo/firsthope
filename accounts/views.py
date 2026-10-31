@@ -254,7 +254,10 @@ def login_view(request):
     else:
         form = LoginForm()
 
-    return render(request, 'accounts/login.html', {'form': form})
+    return render(request, 'accounts/login.html', {
+        'form': form,
+        'email_provider_configured': settings.EMAIL_PROVIDER_CONFIGURED,
+    })
 
 
 @login_required

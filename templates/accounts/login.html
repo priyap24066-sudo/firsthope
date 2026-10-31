@@ -22,7 +22,9 @@
             <div class="form-group">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                     <label for="id_password" style="margin-bottom: 0;">Password</label>
-                    <a href="{% url 'password_reset' %}" style="font-size: var(--font-small);">Forgot password?</a>
+                    {% if email_provider_configured %}
+                        <a href="{% url 'password_reset' %}" style="font-size: var(--font-small);">Forgot password?</a>
+                    {% endif %}
                 </div>
                 <div class="password-input-wrapper">
                     <input type="password" id="id_password" name="password" required placeholder="Enter your password" autocomplete="current-password">
@@ -37,6 +39,9 @@
                         </svg>
                     </button>
                 </div>
+                {% if not email_provider_configured %}
+                    <p class="helptext">Password reset by email is not available right now. Please contact the administrator.</p>
+                {% endif %}
             </div>
 
             <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: var(--space-2);">

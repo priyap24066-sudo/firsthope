@@ -1,5 +1,7 @@
 import os
 import runpy
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -46,11 +48,30 @@ class EmailConfigurationTests(TestCase):
         self.assertEqual(configured['DEFAULT_FROM_EMAIL'], 'FirstHope <verified@example.com>')
 
     def test_console_backend_remains_default_without_email_host_or_brevo_key(self):
-        configured = self.load_settings({'BREVO_API_KEY': '', 'EMAIL_HOST': ''})
+        configured = self.load_settings({'DEBUG': 'True', 'BREVO_API_KEY': '', 'EMAIL_HOST': ''})
 
+        self.assertEqual(configured['EMAIL_BACKEND'], 'accounts.email_delivery.FailSafeEmailBackend')
         self.assertEqual(
             configured['EMAIL_TRANSPORT_BACKEND'],
             'django.core.mail.backends.console.EmailBackend',
+        )
+
+    def test_dummy_backend_is_used_without_provider_in_production(self):
+        with patch.dict(
+            os.environ,
+            {'DEBUG': 'False', 'BREVO_API_KEY': '', 'EMAIL_HOST': ''},
+            clear=True,
+        ):
+            configured = runpy.run_path(str(self.settings_path))
+
+        self.assertFalse(configured['EMAIL_PROVIDER_CONFIGURED'])
+        self.assertEqual(
+            configured['EMAIL_BACKEND'],
+            'django.core.mail.backends.dummy.EmailBackend',
+        )
+        self.assertEqual(
+            configured['EMAIL_TRANSPORT_BACKEND'],
+            'django.core.mail.backends.dummy.EmailBackend',
         )
 
     def test_smtp_backend_remains_available_without_brevo_key(self):
@@ -117,6 +138,20 @@ class EmailDeliveryTests(TestCase):
         self.assertNotIn('654321', captured.output[0])
         self.assertNotIn('API key', captured.output[0])
         self.assertNotIn('test-secret', captured.output[0])
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.dummy.EmailBackend')
+    def test_dummy_backend_does_not_print_or_log_otp(self):
+        output = StringIO()
+        with redirect_stdout(output):
+            with self.assertNoLogs('accounts.email_delivery', level='ERROR'):
+                sent = send_email_otp(
+                    User(username='email_user', email='email@example.com'),
+                    '654321',
+                    purpose='register',
+                )
+
+        self.assertTrue(sent)
+        self.assertNotIn('654321', output.getvalue())
 
 
 class EmailFailureSafetyTests(TestCase):
@@ -214,6 +249,32 @@ class EmailFailureSafetyTests(TestCase):
         self.assertEqual(captured.output, ['ERROR:accounts.email_delivery:Email delivery failed (RuntimeError)'])
         self.assertNotIn('654321', captured.output[0])
         self.assertNotIn('test-secret', captured.output[0])
+
+    @override_settings(
+        EMAIL_PROVIDER_CONFIGURED=False,
+        EMAIL_BACKEND='django.core.mail.backends.dummy.EmailBackend',
+    )
+    def test_password_reset_remains_friendly_when_provider_is_unconfigured(self):
+        user = User.objects.create_user(
+            username='no_provider_reset',
+            email='no_provider_reset@example.com',
+            password=PASSWORD,
+        )
+
+        login_response = self.client.get(reverse('login'))
+        self.assertContains(
+            login_response,
+            'Password reset by email is not available right now. Please contact the administrator.',
+        )
+        self.assertNotContains(login_response, 'Forgot password?')
+
+        response = self.client.post(
+            reverse('password_reset'),
+            {'email': user.email},
+        )
+        self.assertIn(response.status_code, (200, 302))
+        if response.status_code == 302:
+            self.assertRedirects(response, reverse('password_reset_done'))
 
 
 class RegistrationTests(TestCase):
