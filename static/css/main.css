@@ -725,7 +725,6 @@ body:has(.coach-card) .footer {
 
 .chat-row-user {
   align-self: flex-end;
-  flex-direction: row-reverse;
 }
 
 .chat-row-assistant {
@@ -744,12 +743,6 @@ body:has(.coach-card) .footer {
   font-weight: 600;
 }
 
-.chat-avatar-user {
-  background-color: var(--accent-blue-light);
-  color: var(--accent-blue);
-  border: 1px solid #bfdbfe;
-}
-
 .chat-avatar-assistant {
   background-color: var(--brand-navy);
   color: #ffffff;
@@ -761,6 +754,10 @@ body:has(.coach-card) .footer {
   gap: 4px;
   min-width: 0;
   max-width: calc(100% - 38px);
+}
+
+.chat-row-user .chat-bubble-container {
+  max-width: 100%;
 }
 
 .chat-bubble {

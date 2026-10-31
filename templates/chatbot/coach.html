@@ -44,9 +44,9 @@
                 <div data-preset-not-configured="true" hidden></div>
             {% else %}
                 <article class="chat-row chat-row-{{ message.role }}" data-role="{{ message.role }}">
-                    <div class="chat-avatar chat-avatar-{{ message.role }}" aria-hidden="true">
-                        {% if message.role == 'user' %}S{% else %}AI{% endif %}
-                    </div>
+                    {% if message.role == 'assistant' %}
+                        <div class="chat-avatar chat-avatar-assistant" aria-hidden="true">AI</div>
+                    {% endif %}
                     <div class="chat-bubble-container">
                         <div class="chat-bubble chat-bubble-{{ message.role }}">
                             <div class="message-content" data-raw="{{ message.content }}">{{ message.content }}</div>
@@ -154,8 +154,6 @@
     const remainingCount = document.getElementById('remaining-count');
     const emptyState = document.getElementById('empty-state');
     const mode = form.elements.mode ? form.elements.mode.value : 'resume';
-    const userInitial = 'S';
-
     let lastSentMessage = '';
 
     // Check if initial messages triggered not configured notice
@@ -288,11 +286,6 @@
         article.className = 'chat-row chat-row-' + role;
         article.dataset.role = role;
 
-        const avatar = document.createElement('div');
-        avatar.className = 'chat-avatar chat-avatar-' + role;
-        avatar.setAttribute('aria-hidden', 'true');
-        avatar.textContent = role === 'user' ? userInitial : 'AI';
-
         const bubbleContainer = document.createElement('div');
         bubbleContainer.className = 'chat-bubble-container';
 
@@ -317,6 +310,11 @@
 
         bubbleContainer.appendChild(bubble);
         if (role === 'assistant') {
+            const avatar = document.createElement('div');
+            avatar.className = 'chat-avatar chat-avatar-assistant';
+            avatar.setAttribute('aria-hidden', 'true');
+            avatar.textContent = 'AI';
+
             const actions = document.createElement('div');
             actions.className = 'chat-actions';
 
@@ -326,10 +324,10 @@
             copyBtn.textContent = 'Copy';
             copyBtn.setAttribute('aria-label', 'Copy reply');
             actions.appendChild(copyBtn);
+            article.appendChild(avatar);
             bubbleContainer.appendChild(actions);
         }
 
-        article.appendChild(avatar);
         article.appendChild(bubbleContainer);
 
         // Insert before typing indicator
