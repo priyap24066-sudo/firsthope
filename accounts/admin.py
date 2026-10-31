@@ -7,7 +7,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.utils import timezone
 from django.utils.html import format_html
 
-from .email_delivery import EMAIL_SEND_FAILURE_MESSAGE, send_email
+from .email_delivery import ADMIN_EMAIL_WARNING, send_email
 from .models import OTPCode, RecruiterDocument, RecruiterProfile, User
 
 FREE_EMAIL_DOMAINS = {'gmail.com', 'yahoo.com', 'outlook.com'}
@@ -157,7 +157,7 @@ class RecruiterDocumentAdmin(admin.ModelAdmin):
                     [profile.user.email],
                 )
         if email_failed:
-            self.message_user(request, EMAIL_SEND_FAILURE_MESSAGE, level=messages.ERROR)
+            self.message_user(request, ADMIN_EMAIL_WARNING, level=messages.WARNING)
 
     @admin.action(description='Reject selected documents')
     def reject_documents(self, request, queryset):
@@ -194,4 +194,4 @@ class RecruiterDocumentAdmin(admin.ModelAdmin):
                     [profile.user.email],
                 )
         if email_failed:
-            self.message_user(request, EMAIL_SEND_FAILURE_MESSAGE, level=messages.ERROR)
+            self.message_user(request, ADMIN_EMAIL_WARNING, level=messages.WARNING)

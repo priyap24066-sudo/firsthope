@@ -188,12 +188,14 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'FirstHope <noreply@fi
 BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
 
 if BREVO_API_KEY:
-    EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
+    EMAIL_TRANSPORT_BACKEND = 'anymail.backends.brevo.EmailBackend'
     ANYMAIL = {'BREVO_API_KEY': BREVO_API_KEY}
 elif not EMAIL_HOST:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    EMAIL_TRANSPORT_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_TRANSPORT_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+EMAIL_BACKEND = 'accounts.email_delivery.FailSafeEmailBackend'
 
 # Authentication & OTP settings
 LOGIN_OTP_REQUIRED = os.environ.get('LOGIN_OTP_REQUIRED', 'False').lower() in ('true', '1')

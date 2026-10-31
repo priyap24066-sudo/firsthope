@@ -1,20 +1,28 @@
 import os
 import runpy
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from django.contrib.admin.sites import AdminSite
+from django.contrib import messages
 from django.core import mail
+from django.core.mail.backends.base import BaseEmailBackend
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from .admin import RecruiterProfileAdmin, check_recruiter_domain_match
-from .email_delivery import EMAIL_SEND_FAILURE_MESSAGE
+from .admin import RecruiterDocumentAdmin, RecruiterProfileAdmin, check_recruiter_domain_match
+from .email_delivery import ADMIN_EMAIL_WARNING, EMAIL_SEND_FAILURE_MESSAGE
 from .models import CandidateProfile, OTPCode, RecruiterDocument, RecruiterProfile, User
 from .otp_sender import send_email_otp
 
 PASSWORD = 'Str0ng!Pass#2026'
+
+
+class FailingEmailBackend(BaseEmailBackend):
+    def send_messages(self, email_messages):
+        raise RuntimeError('OTP 654321 API key test-secret')
 
 
 class EmailConfigurationTests(TestCase):
@@ -31,7 +39,8 @@ class EmailConfigurationTests(TestCase):
             'DEFAULT_FROM_EMAIL': 'FirstHope <verified@example.com>',
         })
 
-        self.assertEqual(configured['EMAIL_BACKEND'], 'anymail.backends.brevo.EmailBackend')
+        self.assertEqual(configured['EMAIL_BACKEND'], 'accounts.email_delivery.FailSafeEmailBackend')
+        self.assertEqual(configured['EMAIL_TRANSPORT_BACKEND'], 'anymail.backends.brevo.EmailBackend')
         self.assertEqual(configured['ANYMAIL'], {'BREVO_API_KEY': 'test-brevo-key'})
         self.assertIn('anymail', configured['INSTALLED_APPS'])
         self.assertEqual(configured['DEFAULT_FROM_EMAIL'], 'FirstHope <verified@example.com>')
@@ -40,7 +49,7 @@ class EmailConfigurationTests(TestCase):
         configured = self.load_settings({'BREVO_API_KEY': '', 'EMAIL_HOST': ''})
 
         self.assertEqual(
-            configured['EMAIL_BACKEND'],
+            configured['EMAIL_TRANSPORT_BACKEND'],
             'django.core.mail.backends.console.EmailBackend',
         )
 
@@ -48,7 +57,7 @@ class EmailConfigurationTests(TestCase):
         configured = self.load_settings({'BREVO_API_KEY': '', 'EMAIL_HOST': 'smtp.example.com'})
 
         self.assertEqual(
-            configured['EMAIL_BACKEND'],
+            configured['EMAIL_TRANSPORT_BACKEND'],
             'django.core.mail.backends.smtp.EmailBackend',
         )
 
@@ -90,6 +99,121 @@ class EmailDeliveryTests(TestCase):
         self.assertEqual(captured.output, ['ERROR:accounts.email_delivery:Email delivery failed (RuntimeError)'])
         self.assertNotIn('123456', captured.output[0])
         self.assertNotIn('secret-value', captured.output[0])
+
+    @override_settings(
+        EMAIL_BACKEND='accounts.email_delivery.FailSafeEmailBackend',
+        EMAIL_TRANSPORT_BACKEND='accounts.tests.FailingEmailBackend',
+    )
+    def test_backend_failure_does_not_log_otp_or_email_content(self):
+        with self.assertLogs('accounts.email_delivery', level='ERROR') as captured:
+            sent = send_email_otp(
+                User(username='email_user', email='email@example.com'),
+                '654321',
+                purpose='register',
+            )
+
+        self.assertFalse(sent)
+        self.assertEqual(captured.output, ['ERROR:accounts.email_delivery:Email delivery failed (RuntimeError)'])
+        self.assertNotIn('654321', captured.output[0])
+        self.assertNotIn('API key', captured.output[0])
+        self.assertNotIn('test-secret', captured.output[0])
+
+
+class EmailFailureSafetyTests(TestCase):
+    def setUp(self):
+        self.admin_user = User.objects.create_superuser(
+            username='email_admin',
+            email='admin@example.com',
+            password=PASSWORD,
+        )
+        self.recruiter = User.objects.create_user(
+            username='email_recruiter',
+            email='recruiter@example.com',
+            password=PASSWORD,
+            role=User.Role.RECRUITER,
+        )
+        self.document = RecruiterDocument.objects.create(
+            recruiter=self.recruiter.recruiter_profile,
+            document_type=RecruiterDocument.DocType.REGISTRATION,
+            file_name='registration.pdf',
+            content_type='application/pdf',
+            file_data=b'%PDF-1.4 test document',
+            file_size=23,
+        )
+
+    @override_settings(
+        EMAIL_BACKEND='accounts.email_delivery.FailSafeEmailBackend',
+        EMAIL_TRANSPORT_BACKEND='accounts.tests.FailingEmailBackend',
+    )
+    def test_admin_approval_is_saved_and_warns_when_email_fails(self):
+        document_admin = RecruiterDocumentAdmin(RecruiterDocument, AdminSite())
+        document_admin.message_user = Mock()
+        request = SimpleNamespace(user=self.admin_user)
+
+        with self.assertLogs('accounts.email_delivery', level='ERROR') as captured:
+            document_admin.approve_documents(
+                request,
+                RecruiterDocument.objects.filter(pk=self.document.pk),
+            )
+
+        self.document.refresh_from_db()
+        self.recruiter.recruiter_profile.refresh_from_db()
+        self.assertEqual(self.document.status, RecruiterDocument.Status.APPROVED)
+        self.assertTrue(self.recruiter.recruiter_profile.is_verified)
+        document_admin.message_user.assert_called_once_with(
+            request,
+            ADMIN_EMAIL_WARNING,
+            level=messages.WARNING,
+        )
+        self.assertEqual(captured.output, ['ERROR:accounts.email_delivery:Email delivery failed (RuntimeError)'])
+
+    @override_settings(
+        EMAIL_BACKEND='accounts.email_delivery.FailSafeEmailBackend',
+        EMAIL_TRANSPORT_BACKEND='accounts.tests.FailingEmailBackend',
+    )
+    def test_admin_rejection_is_saved_and_warns_when_email_fails(self):
+        document_admin = RecruiterDocumentAdmin(RecruiterDocument, AdminSite())
+        document_admin.message_user = Mock()
+        request = SimpleNamespace(user=self.admin_user)
+
+        with self.assertLogs('accounts.email_delivery', level='ERROR') as captured:
+            document_admin.reject_documents(
+                request,
+                RecruiterDocument.objects.filter(pk=self.document.pk),
+            )
+
+        self.document.refresh_from_db()
+        self.assertEqual(self.document.status, RecruiterDocument.Status.REJECTED)
+        document_admin.message_user.assert_called_once_with(
+            request,
+            ADMIN_EMAIL_WARNING,
+            level=messages.WARNING,
+        )
+        self.assertEqual(captured.output, ['ERROR:accounts.email_delivery:Email delivery failed (RuntimeError)'])
+
+    @override_settings(
+        EMAIL_BACKEND='accounts.email_delivery.FailSafeEmailBackend',
+        EMAIL_TRANSPORT_BACKEND='accounts.tests.FailingEmailBackend',
+    )
+    def test_password_reset_page_succeeds_when_email_backend_fails(self):
+        user = User.objects.create_user(
+            username='reset_user',
+            email='reset@example.com',
+            password=PASSWORD,
+        )
+
+        with self.assertLogs('accounts.email_delivery', level='ERROR') as captured:
+            response = self.client.post(
+                reverse('password_reset'),
+                {'email': user.email},
+            )
+
+        self.assertIn(response.status_code, (200, 302))
+        if response.status_code == 302:
+            self.assertRedirects(response, reverse('password_reset_done'))
+        self.assertEqual(captured.output, ['ERROR:accounts.email_delivery:Email delivery failed (RuntimeError)'])
+        self.assertNotIn('654321', captured.output[0])
+        self.assertNotIn('test-secret', captured.output[0])
 
 
 class RegistrationTests(TestCase):
