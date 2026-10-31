@@ -1052,12 +1052,16 @@ body:has(.coach-card) .footer {
 }
 
 .home-hero h1 {
+  max-width: 760px;
+  margin-right: auto;
+  margin-left: auto;
   margin-bottom: var(--space-1);
   color: var(--text-primary);
 }
 
 .home-hero-subtitle {
-  margin: 0 0 var(--space-4);
+  max-width: 760px;
+  margin: 0 auto var(--space-4);
   color: var(--text-muted);
 }
 
