@@ -1,6 +1,7 @@
 import logging
 from django.conf import settings
-from django.core.mail import send_mail
+
+from .email_delivery import send_email
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ def send_email_otp(user, code, purpose):
         f"- The FirstHope Team"
     )
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'FirstHope <noreply@firsthope.com>')
-    return send_mail(subject, message, from_email, [user.email], fail_silently=False)
+    return send_email(subject, message, from_email, [user.email])
 
 
 def send_sms_otp(user, code, purpose):

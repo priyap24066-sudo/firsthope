@@ -23,6 +23,7 @@ from .models import (
     RecruiterProfile,
     User,
 )
+from .email_delivery import EMAIL_SEND_FAILURE_MESSAGE
 from .otp_sender import is_sms_configured, send_email_otp, send_sms_otp
 from .ratelimit import ratelimit_view
 
@@ -52,16 +53,19 @@ def register(request):
 
             # Create & send registration OTP
             otp, raw_code = OTPCode.create_otp(user=user, purpose=OTPCode.Purpose.REGISTER)
-            send_email_otp(user, raw_code, purpose='register')
+            email_sent = send_email_otp(user, raw_code, purpose='register')
 
             request.session['pending_otp_user'] = user.id
             request.session['otp_purpose'] = OTPCode.Purpose.REGISTER
             request.session['otp_channel'] = 'email'
 
-            messages.success(
-                request,
-                f'Account created! We have sent a 6-digit verification code to {user.email}. Please verify below.',
-            )
+            if email_sent:
+                messages.success(
+                    request,
+                    f'Account created! We have sent a 6-digit verification code to {user.email}. Please verify below.',
+                )
+            else:
+                messages.error(request, EMAIL_SEND_FAILURE_MESSAGE)
             return redirect('verify_otp')
     else:
         form = RegisterForm()
@@ -163,8 +167,10 @@ def resend_otp(request):
         send_sms_otp(user, raw_code, purpose=purpose)
         messages.success(request, f'A new verification code was sent to your phone (+91 ******{user.phone[-4:]}).')
     else:
-        send_email_otp(user, raw_code, purpose=purpose)
-        messages.success(request, f'A new verification code was sent to {user.email}.')
+        if send_email_otp(user, raw_code, purpose=purpose):
+            messages.success(request, f'A new verification code was sent to {user.email}.')
+        else:
+            messages.error(request, EMAIL_SEND_FAILURE_MESSAGE)
 
     return redirect('verify_otp')
 
@@ -204,11 +210,15 @@ def login_view(request):
                 request.session['otp_channel'] = 'email'
 
                 can_send, _ = OTPCode.can_resend(user, OTPCode.Purpose.REGISTER)
+                email_sent = True
                 if can_send:
                     _, raw_code = OTPCode.create_otp(user, OTPCode.Purpose.REGISTER)
-                    send_email_otp(user, raw_code, purpose='register')
+                    email_sent = send_email_otp(user, raw_code, purpose='register')
 
-                messages.info(request, 'Your account is pending verification. Please enter the OTP sent to your email.')
+                if email_sent:
+                    messages.info(request, 'Your account is pending verification. Please enter the OTP sent to your email.')
+                else:
+                    messages.error(request, EMAIL_SEND_FAILURE_MESSAGE)
                 return redirect('verify_otp')
 
             # User credentials are valid. Check if 2FA login OTP is required.
@@ -219,11 +229,15 @@ def login_view(request):
                 request.session['otp_channel'] = 'email'
 
                 can_send, _ = OTPCode.can_resend(user, OTPCode.Purpose.LOGIN)
+                email_sent = True
                 if can_send:
                     _, raw_code = OTPCode.create_otp(user, OTPCode.Purpose.LOGIN)
-                    send_email_otp(user, raw_code, purpose='login')
+                    email_sent = send_email_otp(user, raw_code, purpose='login')
 
-                messages.info(request, f'Verification code sent to {user.email}. Enter it below to complete sign in.')
+                if email_sent:
+                    messages.info(request, f'Verification code sent to {user.email}. Enter it below to complete sign in.')
+                else:
+                    messages.error(request, EMAIL_SEND_FAILURE_MESSAGE)
                 return redirect('verify_otp')
             else:
                 login(request, user)

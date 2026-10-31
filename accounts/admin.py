@@ -2,11 +2,12 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib import admin
+from django.contrib import messages
 from django.contrib.auth.admin import UserAdmin
-from django.core.mail import send_mail
 from django.utils import timezone
 from django.utils.html import format_html
 
+from .email_delivery import EMAIL_SEND_FAILURE_MESSAGE, send_email
 from .models import OTPCode, RecruiterDocument, RecruiterProfile, User
 
 FREE_EMAIL_DOMAINS = {'gmail.com', 'yahoo.com', 'outlook.com'}
@@ -129,6 +130,7 @@ class RecruiterDocumentAdmin(admin.ModelAdmin):
     def approve_documents(self, request, queryset):
         now = timezone.now()
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'FirstHope <noreply@firsthope.com>')
+        email_failed = False
         for doc in queryset:
             doc.status = RecruiterDocument.Status.APPROVED
             doc.reviewed_on = now
@@ -143,23 +145,25 @@ class RecruiterDocumentAdmin(admin.ModelAdmin):
 
             # Email recruiter
             if profile.user and profile.user.email:
-                send_mail(
-                    subject='FirstHope - Company Document Approved',
-                    message=(
+                email_failed |= not send_email(
+                    'FirstHope - Company Document Approved',
+                    (
                         f"Hello {profile.user.username},\n\n"
                         f"Your verification document ({doc.get_document_type_display()}) has been approved by our admin team.\n"
                         f"Your recruiter account is now verified and you can post jobs on FirstHope.\n\n"
                         f"- The FirstHope Team"
                     ),
-                    from_email=from_email,
-                    recipient_list=[profile.user.email],
-                    fail_silently=True,
+                    from_email,
+                    [profile.user.email],
                 )
+        if email_failed:
+            self.message_user(request, EMAIL_SEND_FAILURE_MESSAGE, level=messages.ERROR)
 
     @admin.action(description='Reject selected documents')
     def reject_documents(self, request, queryset):
         now = timezone.now()
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'FirstHope <noreply@firsthope.com>')
+        email_failed = False
         for doc in queryset:
             note = doc.admin_note or "Document does not meet verification requirements."
             doc.status = RecruiterDocument.Status.REJECTED
@@ -177,16 +181,17 @@ class RecruiterDocumentAdmin(admin.ModelAdmin):
 
             # Email recruiter
             if profile.user and profile.user.email:
-                send_mail(
-                    subject='FirstHope - Company Document Status Update',
-                    message=(
+                email_failed |= not send_email(
+                    'FirstHope - Company Document Status Update',
+                    (
                         f"Hello {profile.user.username},\n\n"
                         f"Your verification document ({doc.get_document_type_display()}) was reviewed and rejected.\n"
                         f"Reason: {note}\n\n"
                         f"Please submit a valid proof document from your Company Verification page.\n\n"
                         f"- The FirstHope Team"
                     ),
-                    from_email=from_email,
-                    recipient_list=[profile.user.email],
-                    fail_silently=True,
+                    from_email,
+                    [profile.user.email],
                 )
+        if email_failed:
+            self.message_user(request, EMAIL_SEND_FAILURE_MESSAGE, level=messages.ERROR)

@@ -1,13 +1,83 @@
+import os
+import runpy
+from pathlib import Path
+from unittest.mock import patch
+
 from django.contrib.admin.sites import AdminSite
+from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from unittest.mock import patch
 
 from .admin import RecruiterProfileAdmin, check_recruiter_domain_match
+from .email_delivery import EMAIL_SEND_FAILURE_MESSAGE
 from .models import CandidateProfile, RecruiterDocument, RecruiterProfile, User
+from .otp_sender import send_email_otp
 
 PASSWORD = 'Str0ng!Pass#2026'
+
+
+class EmailConfigurationTests(TestCase):
+    settings_path = Path(__file__).resolve().parents[1] / 'config' / 'settings.py'
+
+    def load_settings(self, environment):
+        with patch.dict(os.environ, environment):
+            return runpy.run_path(str(self.settings_path))
+
+    def test_brevo_backend_is_used_when_api_key_is_set(self):
+        configured = self.load_settings({
+            'BREVO_API_KEY': 'test-brevo-key',
+            'EMAIL_HOST': 'smtp.example.com',
+            'DEFAULT_FROM_EMAIL': 'FirstHope <verified@example.com>',
+        })
+
+        self.assertEqual(configured['EMAIL_BACKEND'], 'anymail.backends.brevo.EmailBackend')
+        self.assertEqual(configured['ANYMAIL'], {'BREVO_API_KEY': 'test-brevo-key'})
+        self.assertIn('anymail', configured['INSTALLED_APPS'])
+        self.assertEqual(configured['DEFAULT_FROM_EMAIL'], 'FirstHope <verified@example.com>')
+
+    def test_console_backend_remains_default_without_email_host_or_brevo_key(self):
+        configured = self.load_settings({'BREVO_API_KEY': '', 'EMAIL_HOST': ''})
+
+        self.assertEqual(
+            configured['EMAIL_BACKEND'],
+            'django.core.mail.backends.console.EmailBackend',
+        )
+
+    def test_smtp_backend_remains_available_without_brevo_key(self):
+        configured = self.load_settings({'BREVO_API_KEY': '', 'EMAIL_HOST': 'smtp.example.com'})
+
+        self.assertEqual(
+            configured['EMAIL_BACKEND'],
+            'django.core.mail.backends.smtp.EmailBackend',
+        )
+
+
+class EmailDeliveryTests(TestCase):
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_otp_is_sent_through_django_email_framework(self):
+        user = User(username='email_user', email='email@example.com')
+
+        self.assertTrue(send_email_otp(user, '123456', purpose='register'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('123456', mail.outbox[0].body)
+
+    def test_failed_delivery_logs_only_exception_type(self):
+        with patch(
+            'accounts.email_delivery.send_mail',
+            side_effect=RuntimeError('OTP 123456 API key secret-value'),
+        ):
+            with self.assertLogs('accounts.email_delivery', level='ERROR') as captured:
+                sent = send_email_otp(
+                    User(username='email_user', email='email@example.com'),
+                    '123456',
+                    purpose='register',
+                )
+
+        self.assertFalse(sent)
+        self.assertEqual(captured.output, ['ERROR:accounts.email_delivery:Email delivery failed (RuntimeError)'])
+        self.assertNotIn('123456', captured.output[0])
+        self.assertNotIn('secret-value', captured.output[0])
 
 
 class RegistrationTests(TestCase):
@@ -31,6 +101,26 @@ class RegistrationTests(TestCase):
         user = User.objects.get(username='rec_test')
         self.assertEqual(user.role, 'recruiter')
         self.assertTrue(RecruiterProfile.objects.filter(user=user).exists())
+
+    def test_registration_shows_friendly_message_if_email_fails(self):
+        with patch(
+            'accounts.email_delivery.send_mail',
+            side_effect=RuntimeError('OTP 123456 API key secret-value'),
+        ):
+            response = self.client.post(
+                reverse('register'),
+                {
+                    'username': 'failed_email',
+                    'email': 'failed_email@example.com',
+                    'role': 'candidate',
+                    'password1': PASSWORD,
+                    'password2': PASSWORD,
+                },
+                follow=True,
+            )
+
+        self.assertContains(response, EMAIL_SEND_FAILURE_MESSAGE)
+        self.assertEqual(response.status_code, 200)
 
     def test_cannot_register_as_admin(self):
         response = self.register('sneaky', 'admin')
