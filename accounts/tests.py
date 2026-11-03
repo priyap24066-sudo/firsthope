@@ -287,6 +287,22 @@ class RegistrationTests(TestCase):
             'password2': PASSWORD,
         })
 
+    @override_settings(REGISTER_OTP_REQUIRED=False)
+    def test_home_and_register_hide_otp_copy_when_otp_is_disabled(self):
+        home_response = self.client.get(reverse('home'))
+        register_response = self.client.get(reverse('register'))
+
+        self.assertNotContains(home_response, 'Accounts require email verification code confirmation')
+        self.assertNotContains(register_response, 'A 6-digit verification code will be sent to this email')
+
+    @override_settings(REGISTER_OTP_REQUIRED=True)
+    def test_home_and_register_show_otp_copy_when_otp_is_enabled(self):
+        home_response = self.client.get(reverse('home'))
+        register_response = self.client.get(reverse('register'))
+
+        self.assertContains(home_response, 'Accounts require email verification code confirmation')
+        self.assertContains(register_response, 'A 6-digit verification code will be sent to this email')
+
     def test_candidate_registration_creates_profile(self):
         self.register('cand_test', 'candidate')
         user = User.objects.get(username='cand_test')

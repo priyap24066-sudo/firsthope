@@ -131,7 +131,7 @@
         <div class="card">
             <h4>1. Create your profile</h4>
             <p>
-                Register as a candidate or recruiter. Accounts require email verification code confirmation.
+                Register as a candidate or recruiter.{% if otp_required %} Accounts require email verification code confirmation.{% endif %}
             </p>
         </div>
         <div class="card">

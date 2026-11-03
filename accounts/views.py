@@ -71,6 +71,7 @@ def home(request):
         'latest_jobs': latest_jobs,
         'hiring_companies': hiring_companies,
         'job_type_cards': job_type_cards,
+        'otp_required': settings.REGISTER_OTP_REQUIRED,
     })
 
 
@@ -110,7 +111,10 @@ def register(request):
     else:
         form = RegisterForm()
 
-    return render(request, 'accounts/register.html', {'form': form})
+    return render(request, 'accounts/register.html', {
+        'form': form,
+        'otp_required': settings.REGISTER_OTP_REQUIRED,
+    })
 
 
 @ratelimit_view('verify_otp', limit=15, window_seconds=60)
