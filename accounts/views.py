@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.db.models import Count
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -32,11 +33,45 @@ from jobs.models import Job
 
 
 def home(request):
-    latest_jobs = Job.objects.filter(
+    active_verified_jobs = Job.objects.filter(
         is_active=True,
         recruiter__recruiter_profile__is_verified=True,
-    ).select_related('recruiter', 'recruiter__recruiter_profile')[:6]
-    return render(request, 'home.html', {'latest_jobs': latest_jobs})
+    ).select_related('recruiter', 'recruiter__recruiter_profile')
+    latest_jobs = active_verified_jobs[:6]
+    hiring_companies = active_verified_jobs.values('company_name').annotate(
+        open_job_count=Count('pk'),
+    ).order_by('-open_job_count', 'company_name')[:4]
+    company_colors = ('blue', 'green', 'purple', 'orange', 'teal')
+    hiring_companies = [
+        {
+            **company,
+            'initial': company['company_name'][:1].upper(),
+            'color_class': company_colors[
+                sum(ord(character) for character in company['company_name'].lower())
+                % len(company_colors)
+            ],
+        }
+        for company in hiring_companies
+    ]
+    job_type_counts = dict(
+        active_verified_jobs.order_by().values_list('job_type').annotate(
+            open_job_count=Count('pk'),
+        )
+    )
+    job_type_cards = [
+        {'value': 'full_time', 'label': 'Full Time', 'icon': 'briefcase'},
+        {'value': 'internship', 'label': 'Internship', 'icon': 'academic-cap'},
+        {'value': 'part_time', 'label': 'Part Time', 'icon': 'clock'},
+        {'value': 'contract', 'label': 'Contract', 'icon': 'document'},
+    ]
+    for job_type in job_type_cards:
+        job_type['open_job_count'] = job_type_counts.get(job_type['value'], 0)
+
+    return render(request, 'home.html', {
+        'latest_jobs': latest_jobs,
+        'hiring_companies': hiring_companies,
+        'job_type_cards': job_type_cards,
+    })
 
 
 @ratelimit_view('register', limit=10, window_seconds=60)
