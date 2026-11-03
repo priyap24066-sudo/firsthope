@@ -4,8 +4,44 @@ from django.utils import timezone
 
 from accounts.models import User
 from .models import Job, JobReport
+from .skill_match import calculate_skill_match
 
 PASSWORD = 'Test@12345'
+
+
+class SkillMatchTests(TestCase):
+    def test_calculates_case_insensitive_matches_from_comma_and_space_delimited_skills(self):
+        result = calculate_skill_match(
+            'Python, Django React',
+            'python, REACT',
+        )
+
+        self.assertEqual(result['percentage'], 67)
+        self.assertEqual(result['matched_skills'], ['Python', 'React'])
+        self.assertEqual(result['missing_skills'], ['Django'])
+        self.assertEqual(result['ring_offset'], 73)
+
+    def test_empty_candidate_skills_have_no_match_and_are_marked_missing(self):
+        result = calculate_skill_match('Python, Django', '  , ')
+
+        self.assertEqual(result['percentage'], 0)
+        self.assertEqual(result['matched_skills'], [])
+        self.assertEqual(result['missing_skills'], ['Python', 'Django'])
+        self.assertFalse(result['has_candidate_skills'])
+
+    def test_duplicate_required_skills_are_counted_once(self):
+        result = calculate_skill_match('Python, python, Django', 'PYTHON')
+
+        self.assertEqual(result['percentage'], 50)
+        self.assertEqual(result['matched_skills'], ['Python'])
+        self.assertEqual(result['missing_skills'], ['Django'])
+
+    def test_no_required_skills_does_not_divide_by_zero(self):
+        result = calculate_skill_match('', 'Python Django')
+
+        self.assertEqual(result['percentage'], 0)
+        self.assertEqual(result['matched_skills'], [])
+        self.assertEqual(result['missing_skills'], [])
 
 
 def make_user(username, role, verified=True):
@@ -39,6 +75,36 @@ class JobTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Django Developer')
         self.assertContains(response, 'Verified')
+
+    def test_skill_match_is_shown_to_candidates_with_profile_skills_only(self):
+        job = make_job(self.rec1, skills_required='Python, Django React')
+        self.cand.candidate_profile.skills = 'python React'
+        self.cand.candidate_profile.save()
+
+        self.client.login(username='cand', password=PASSWORD)
+        response = self.client.get(reverse('job_detail', args=[job.pk]))
+        self.assertContains(response, 'Skill match')
+        self.assertContains(response, '67%')
+        self.assertContains(response, 'You have:</strong> Python, React')
+        self.assertContains(response, 'Missing:</strong> Django')
+
+        self.client.logout()
+        response = self.client.get(reverse('job_detail', args=[job.pk]))
+        self.assertNotContains(response, 'Skill match')
+
+        self.client.login(username='rec2', password=PASSWORD)
+        response = self.client.get(reverse('job_detail', args=[job.pk]))
+        self.assertNotContains(response, 'Skill match')
+
+    def test_skill_match_prompts_candidates_to_add_profile_skills(self):
+        job = make_job(self.rec1)
+        self.client.login(username='cand', password=PASSWORD)
+
+        response = self.client.get(reverse('job_detail', args=[job.pk]))
+
+        self.assertContains(response, 'Add skills to your profile to see your match')
+        self.assertContains(response, reverse('profile'), html=False)
+        self.assertNotContains(response, 'percent skill match')
 
     def test_inactive_job_hidden_from_list(self):
         make_job(self.rec1, title='Closed Job', is_active=False)

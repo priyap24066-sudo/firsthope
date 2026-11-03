@@ -1814,6 +1814,94 @@ body:has(.coach-card) .footer {
   margin-top: var(--space-5);
 }
 
+.skill-match-card {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--card-radius);
+  box-shadow: var(--soft-shadow);
+}
+
+.skill-match-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.skill-match-heading h2 {
+  margin: 0 0 var(--space-1);
+  font-size: 18px;
+}
+
+.skill-match-heading p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-small);
+}
+
+.skill-match-heading p a {
+  font-weight: 600;
+}
+
+.skill-match-ring {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 76px;
+}
+
+.skill-match-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.skill-match-ring circle {
+  fill: none;
+  stroke-width: 7;
+}
+
+.skill-match-ring-track {
+  stroke: var(--accent-blue-light);
+}
+
+.skill-match-ring-progress {
+  stroke: var(--accent-blue);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 180ms ease;
+}
+
+.skill-match-ring > span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--dark-navy);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.skill-match-details {
+  display: grid;
+  gap: 6px;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.skill-match-details p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-small);
+  overflow-wrap: anywhere;
+}
+
+.skill-match-details strong {
+  color: var(--text-primary);
+}
+
 .job-detail-section h2 {
   margin-bottom: var(--space-3);
   font-size: 18px;

@@ -11,6 +11,7 @@ from accounts.models import User
 
 from .forms import JobForm
 from .models import Job, JobReport
+from .skill_match import calculate_skill_match
 
 
 def recruiter_required(view_func):
@@ -77,9 +78,15 @@ def job_detail(request, pk):
 
     has_applied = False
     has_reported = False
+    skill_match = None
     if request.user.is_authenticated and request.user.role == User.Role.CANDIDATE:
         has_applied = job.applications.filter(candidate=request.user).exists()
         has_reported = job.reports.filter(reported_by=request.user).exists()
+        candidate_profile = getattr(request.user, 'candidate_profile', None)
+        skill_match = calculate_skill_match(
+            job.skills_required,
+            candidate_profile.skills if candidate_profile else '',
+        )
 
     return render(
         request,
@@ -88,6 +95,7 @@ def job_detail(request, pk):
             'job': job,
             'has_applied': has_applied,
             'has_reported': has_reported,
+            'skill_match': skill_match,
         },
     )
 
