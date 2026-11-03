@@ -3,110 +3,94 @@
 {% block title %}Available Jobs - FirstHope{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: var(--space-6);">
-    <h1>Explore career openings</h1>
-    <p style="color: var(--text-secondary); margin: 0;">Verified job listings from registered hiring companies.</p>
-</div>
+<div class="job-list-page">
+    <header class="job-list-heading">
+        <h1>Explore career openings</h1>
+        <p>Verified job listings from registered hiring companies.</p>
+    </header>
 
-<div class="two-col-layout" style="grid-template-columns: 280px 1fr;">
-    <!-- Filter Sidebar -->
-    <aside class="sticky-side">
-        <div class="card">
-            <h3 style="font-size: var(--font-subtitle); margin-bottom: var(--space-3);">Filter jobs</h3>
-            <form method="get" action="{% url 'job_list' %}">
-                <div class="form-group">
-                    <label for="id_q">Keywords</label>
-                    <input type="text" id="id_q" name="q" value="{{ q }}" placeholder="Title, skill or company">
-                </div>
-
-                <div class="form-group">
-                    <label for="id_location">Location</label>
-                    <input type="text" id="id_location" name="location" value="{{ location }}" placeholder="City or region">
-                </div>
-
-                <div class="form-group">
-                    <label for="id_job_type">Employment type</label>
-                    <select id="id_job_type" name="job_type">
-                        <option value="">All job types</option>
-                        {% for value, label in job_types %}
-                            <option value="{{ value }}" {% if job_type == value %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div style="display: flex; gap: var(--space-2); margin-top: var(--space-4);">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Apply filters</button>
-                    {% if q or location or job_type %}
-                        <a href="{% url 'job_list' %}" class="btn btn-outline" style="flex: 1;">Clear</a>
-                    {% endif %}
-                </div>
-            </form>
-        </div>
-    </aside>
-
-    <!-- Job Results -->
-    <section>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
-            <div style="font-size: var(--font-small); color: var(--text-secondary); font-weight: 500;">
-                Showing <strong>{{ total }}</strong> job{{ total|pluralize }}
+    <section class="job-filter-card" aria-labelledby="job-filter-title">
+        <h2 id="job-filter-title">Filter jobs</h2>
+        <form method="get" action="{% url 'job_list' %}" class="job-filter-form">
+            <div class="form-group">
+                <label for="id_q">Keywords</label>
+                <input type="text" id="id_q" name="q" value="{{ q }}" placeholder="Title, skill or company">
             </div>
+            <div class="form-group">
+                <label for="id_location">Location</label>
+                <input type="text" id="id_location" name="location" value="{{ location }}" placeholder="City or region">
+            </div>
+            <div class="form-group">
+                <label for="id_job_type">Employment type</label>
+                <select id="id_job_type" name="job_type">
+                    <option value="">All job types</option>
+                    {% for value, label in job_types %}
+                        <option value="{{ value }}" {% if job_type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="job-filter-actions">
+                <button type="submit" class="btn btn-primary">Apply filters</button>
+                {% if q or location or job_type %}
+                    <a href="{% url 'job_list' %}" class="btn btn-secondary">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+    </section>
+
+    <section class="job-results" aria-label="Job results">
+        <div class="job-results-heading">
+            <span>Showing <strong>{{ total }}</strong> job{{ total|pluralize }}</span>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+        <div class="job-results-list">
             {% for job in page_obj %}
-                <article class="job-card">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); flex-wrap: wrap;">
-                        <div>
-                            <h3 class="job-card-title">
+                <article class="job-card job-list-card">
+                    <div class="job-list-card-heading">
+                        <span class="company-avatar {% cycle 'company-color-blue' 'company-color-green' 'company-color-purple' 'company-color-orange' 'company-color-teal' %}" aria-hidden="true">{{ job.company_name|first|upper }}</span>
+                        <div class="job-list-title-group">
+                            <h2 class="job-card-title">
                                 <a href="{% url 'job_detail' job.pk %}">{{ job.title }}</a>
-                            </h3>
+                            </h2>
                             <div class="job-card-company">
                                 <span>{{ job.company_name }}</span>
                                 {% if job.recruiter.recruiter_profile.is_verified %}
                                     <span class="badge badge-verified">Verified</span>
                                 {% endif %}
                             </div>
-                            <div class="job-card-meta">
-                                {{ job.location }}
-                                {% if job.salary %} &bull; {{ job.salary }}{% endif %}
-                                &bull; Posted {{ job.created_at|date:"M d, Y" }}
-                            </div>
                         </div>
-                        <span class="badge" style="background-color: var(--bg-subtle); color: var(--text-secondary);">
-                            {{ job.get_job_type_display }}
-                        </span>
                     </div>
 
-                    <div>
-                        {% for skill in job.skills_list|slice:":4" %}
+                    <div class="job-list-chips" aria-label="Job details and skills">
+                        <span class="job-info-chip">{{ job.location }}</span>
+                        <span class="job-info-chip">{{ job.get_job_type_display }}</span>
+                        {% if job.salary %}
+                            <span class="job-info-chip">{{ job.salary }}</span>
+                        {% endif %}
+                        {% for skill in job.skills_list|slice:":3" %}
                             <span class="skill-tag">{{ skill }}</span>
                         {% endfor %}
                     </div>
+
+                    <p class="job-posted-time">Posted {{ job.created_at|timesince }} ago</p>
                 </article>
             {% empty %}
-                <div class="card" style="text-align: center; padding: var(--space-8);">
-                    <h3>No matching jobs found</h3>
-                    <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
-                        Try adjusting your search terms, removing location filters, or checking back soon.
-                    </p>
-                    <a href="{% url 'job_list' %}" class="btn btn-outline">Clear all filters</a>
+                <div class="card job-empty-state">
+                    <h2>No matching jobs found</h2>
+                    <p>Try adjusting your search terms, removing location filters, or checking back soon.</p>
+                    <a href="{% url 'job_list' %}" class="btn btn-secondary">Clear all filters</a>
                 </div>
             {% endfor %}
         </div>
 
-        <!-- Pagination -->
         {% if page_obj.has_other_pages %}
-            <nav aria-label="Job list pagination" style="display: flex; justify-content: center; align-items: center; gap: var(--space-3); margin-top: var(--space-6);">
+            <nav class="job-pagination" aria-label="Job list pagination">
                 {% if page_obj.has_previous %}
-                    <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}" class="btn btn-outline btn-sm">&larr; Previous</a>
+                    <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}" class="btn btn-secondary">Previous</a>
                 {% endif %}
-
-                <span style="font-size: var(--font-small); color: var(--text-secondary);">
-                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                </span>
-
+                <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
                 {% if page_obj.has_next %}
-                    <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}" class="btn btn-outline btn-sm">Next &rarr;</a>
+                    <a href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}" class="btn btn-secondary">Next</a>
                 {% endif %}
             </nav>
         {% endif %}

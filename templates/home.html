@@ -40,7 +40,7 @@
     <div class="home-company-grid">
         {% for company in hiring_companies %}
             <article class="home-company-card">
-                <span class="company-initial {{ company.color_class }}" aria-hidden="true">{{ company.initial }}</span>
+                <span class="company-initial company-color-{{ company.color_class }}" aria-hidden="true">{{ company.initial }}</span>
                 <div class="home-company-details">
                     <h3>{{ company.company_name }}</h3>
                     <span>{{ company.open_job_count }} open job{{ company.open_job_count|pluralize }}</span>
