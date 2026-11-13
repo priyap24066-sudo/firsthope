@@ -24,7 +24,7 @@ from .models import (
     RecruiterProfile,
     User,
 )
-from .email_delivery import EMAIL_SEND_FAILURE_MESSAGE
+from .email_delivery import EMAIL_SEND_FAILURE_MESSAGE, email_delivery_available
 from .otp_sender import is_sms_configured, send_email_otp, send_sms_otp
 from .ratelimit import ratelimit_view
 
@@ -295,7 +295,7 @@ def login_view(request):
 
     return render(request, 'accounts/login.html', {
         'form': form,
-        'email_provider_configured': settings.EMAIL_PROVIDER_CONFIGURED,
+        'email_provider_configured': email_delivery_available(),
     })
 
 

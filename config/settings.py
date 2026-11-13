@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'anymail',
+    'gmailapi_backend',
     'accounts',
     'jobs',
     'applications',
@@ -186,9 +187,17 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() in ('true', '1')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'FirstHope <noreply@firsthope.com>')
 BREVO_API_KEY = os.environ.get('BREVO_API_KEY')
-EMAIL_PROVIDER_CONFIGURED = bool(BREVO_API_KEY or EMAIL_HOST)
+GMAIL_API_CLIENT_ID = os.environ.get('GMAIL_API_CLIENT_ID')
+GMAIL_API_CLIENT_SECRET = os.environ.get('GMAIL_API_CLIENT_SECRET')
+GMAIL_API_REFRESH_TOKEN = os.environ.get('GMAIL_API_REFRESH_TOKEN')
+GMAIL_API_CONFIGURED = bool(
+    GMAIL_API_CLIENT_ID and GMAIL_API_CLIENT_SECRET and GMAIL_API_REFRESH_TOKEN
+)
+EMAIL_PROVIDER_CONFIGURED = bool(BREVO_API_KEY or EMAIL_HOST or GMAIL_API_CONFIGURED)
 
-if BREVO_API_KEY:
+if GMAIL_API_CONFIGURED:
+    EMAIL_BACKEND = 'gmailapi_backend.mail.GmailBackend'
+elif BREVO_API_KEY:
     EMAIL_TRANSPORT_BACKEND = 'anymail.backends.brevo.EmailBackend'
     ANYMAIL = {'BREVO_API_KEY': BREVO_API_KEY}
     EMAIL_BACKEND = 'accounts.email_delivery.FailSafeEmailBackend'

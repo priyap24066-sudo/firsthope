@@ -1,9 +1,12 @@
 import os
 import re
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm, UserCreationForm
 from django.core.exceptions import ValidationError
+from django.core.mail import EmailMultiAlternatives
+from django.template import loader
 
+from .email_delivery import log_email_delivery_failure
 from .models import (
     CandidateProfile,
     RecruiterDocument,
@@ -15,6 +18,30 @@ from .models import (
 ALLOWED_DOC_EXTENSIONS = {'.pdf', '.jpg', '.jpeg', '.png'}
 ALLOWED_CONTENT_TYPES = {'application/pdf', 'image/jpeg', 'image/png', 'image/pjpeg'}
 MAX_DOC_SIZE = 5 * 1024 * 1024  # 5 MB
+
+
+class FailSafePasswordResetForm(PasswordResetForm):
+    def send_mail(
+        self,
+        subject_template_name,
+        email_template_name,
+        context,
+        from_email,
+        to_email,
+        html_email_template_name=None,
+    ):
+        subject = loader.render_to_string(subject_template_name, context)
+        subject = ''.join(subject.splitlines())
+        body = loader.render_to_string(email_template_name, context)
+        email_message = EmailMultiAlternatives(subject, body, from_email, [to_email])
+        if html_email_template_name is not None:
+            html_email = loader.render_to_string(html_email_template_name, context)
+            email_message.attach_alternative(html_email, 'text/html')
+
+        try:
+            email_message.send()
+        except Exception as exc:
+            log_email_delivery_failure(exc)
 
 
 def validate_company_document(uploaded_file):

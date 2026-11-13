@@ -11,6 +11,17 @@ EMAIL_SEND_FAILURE_MESSAGE = 'We could not send the email right now. Please try 
 ADMIN_EMAIL_WARNING = 'Saved, but the email could not be sent.'
 
 
+def email_delivery_available():
+    return bool(
+        getattr(settings, 'EMAIL_PROVIDER_CONFIGURED', False)
+        or getattr(settings, 'EMAIL_BACKEND', '') == 'gmailapi_backend.mail.GmailBackend'
+    )
+
+
+def log_email_delivery_failure(exc):
+    logger.error('Email delivery failed (%s)', type(exc).__name__)
+
+
 class FailSafeEmailBackend(BaseEmailBackend):
     def send_messages(self, email_messages):
         if not email_messages:
@@ -20,7 +31,7 @@ class FailSafeEmailBackend(BaseEmailBackend):
             backend = get_connection(backend=settings.EMAIL_TRANSPORT_BACKEND)
             return backend.send_messages(email_messages)
         except Exception as exc:
-            logger.error('Email delivery failed (%s)', type(exc).__name__)
+            log_email_delivery_failure(exc)
             return 0
 
 
@@ -34,5 +45,5 @@ def send_email(subject, message, from_email, recipient_list):
             fail_silently=False,
         ))
     except Exception as exc:
-        logger.error('Email delivery failed (%s)', type(exc).__name__)
+        log_email_delivery_failure(exc)
         return False

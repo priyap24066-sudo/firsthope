@@ -15,7 +15,11 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .admin import RecruiterDocumentAdmin, RecruiterProfileAdmin, check_recruiter_domain_match
-from .email_delivery import ADMIN_EMAIL_WARNING, EMAIL_SEND_FAILURE_MESSAGE
+from .email_delivery import (
+    ADMIN_EMAIL_WARNING,
+    EMAIL_SEND_FAILURE_MESSAGE,
+    email_delivery_available,
+)
 from .models import CandidateProfile, OTPCode, RecruiterDocument, RecruiterProfile, User
 from .otp_sender import send_email_otp
 
@@ -55,6 +59,49 @@ class EmailConfigurationTests(TestCase):
             configured['EMAIL_TRANSPORT_BACKEND'],
             'django.core.mail.backends.console.EmailBackend',
         )
+
+    def test_gmail_backend_is_used_when_all_credentials_are_set(self):
+        configured = self.load_settings({
+            'GMAIL_API_CLIENT_ID': 'client-id',
+            'GMAIL_API_CLIENT_SECRET': 'client-secret',
+            'GMAIL_API_REFRESH_TOKEN': 'refresh-token',
+            'BREVO_API_KEY': '',
+            'EMAIL_HOST': '',
+        })
+
+        self.assertEqual(configured['EMAIL_BACKEND'], 'gmailapi_backend.mail.GmailBackend')
+        self.assertEqual(configured['GMAIL_API_CLIENT_ID'], 'client-id')
+        self.assertEqual(configured['GMAIL_API_CLIENT_SECRET'], 'client-secret')
+        self.assertEqual(configured['GMAIL_API_REFRESH_TOKEN'], 'refresh-token')
+        self.assertTrue(configured['EMAIL_PROVIDER_CONFIGURED'])
+        self.assertIn('gmailapi_backend', configured['INSTALLED_APPS'])
+
+    def test_partial_gmail_credentials_keep_existing_backend_behavior(self):
+        configured = self.load_settings({
+            'GMAIL_API_CLIENT_ID': 'client-id',
+            'GMAIL_API_CLIENT_SECRET': '',
+            'GMAIL_API_REFRESH_TOKEN': 'refresh-token',
+            'BREVO_API_KEY': '',
+            'EMAIL_HOST': '',
+            'DEBUG': 'True',
+        })
+
+        self.assertEqual(
+            configured['EMAIL_BACKEND'],
+            'accounts.email_delivery.FailSafeEmailBackend',
+        )
+        self.assertEqual(
+            configured['EMAIL_TRANSPORT_BACKEND'],
+            'django.core.mail.backends.console.EmailBackend',
+        )
+        self.assertFalse(configured['GMAIL_API_CONFIGURED'])
+
+    @override_settings(
+        EMAIL_PROVIDER_CONFIGURED=False,
+        EMAIL_BACKEND='gmailapi_backend.mail.GmailBackend',
+    )
+    def test_gmail_backend_is_reported_as_available(self):
+        self.assertTrue(email_delivery_available())
 
     def test_dummy_backend_is_used_without_provider_in_production(self):
         with patch.dict(
@@ -248,6 +295,32 @@ class EmailFailureSafetyTests(TestCase):
             self.assertRedirects(response, reverse('password_reset_done'))
         self.assertEqual(captured.output, ['ERROR:accounts.email_delivery:Email delivery failed (RuntimeError)'])
         self.assertNotIn('654321', captured.output[0])
+        self.assertNotIn('test-secret', captured.output[0])
+
+    @override_settings(
+        EMAIL_PROVIDER_CONFIGURED=True,
+        EMAIL_BACKEND='accounts.tests.FailingEmailBackend',
+    )
+    def test_password_reset_is_failure_safe_with_direct_email_backend(self):
+        user = User.objects.create_user(
+            username='gmail_reset_user',
+            email='gmail-reset@example.com',
+            password=PASSWORD,
+        )
+
+        with self.assertLogs('accounts.email_delivery', level='ERROR') as captured:
+            response = self.client.post(
+                reverse('password_reset'),
+                {'email': user.email},
+            )
+
+        self.assertIn(response.status_code, (200, 302))
+        if response.status_code == 302:
+            self.assertRedirects(response, reverse('password_reset_done'))
+        self.assertEqual(
+            captured.output,
+            ['ERROR:accounts.email_delivery:Email delivery failed (RuntimeError)'],
+        )
         self.assertNotIn('test-secret', captured.output[0])
 
     @override_settings(
