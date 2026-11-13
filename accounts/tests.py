@@ -1,6 +1,7 @@
 import os
 import runpy
 from contextlib import redirect_stdout
+from datetime import timedelta
 from io import StringIO
 from pathlib import Path
 from types import SimpleNamespace
@@ -8,11 +9,14 @@ from unittest.mock import Mock, patch
 
 from django.contrib.admin.sites import AdminSite
 from django.contrib import messages
+from django.core.cache import cache
 from django.core import mail
 from django.core.mail.backends.base import BaseEmailBackend
+from django.core.management import call_command
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from .admin import RecruiterDocumentAdmin, RecruiterProfileAdmin, check_recruiter_domain_match
 from .email_delivery import (
@@ -351,6 +355,9 @@ class EmailFailureSafetyTests(TestCase):
 
 
 class RegistrationTests(TestCase):
+    def setUp(self):
+        cache.clear()
+
     def register(self, username, role):
         return self.client.post(reverse('register'), {
             'username': username,
@@ -443,6 +450,315 @@ class RegistrationTests(TestCase):
 
         self.assertContains(response, EMAIL_SEND_FAILURE_MESSAGE)
         self.assertEqual(response.status_code, 200)
+
+    @override_settings(REGISTER_OTP_REQUIRED=True)
+    @patch('accounts.views.OTPCode.generate_code', return_value='123456')
+    @patch('accounts.views.send_email_otp', return_value=False)
+    def test_failed_registration_send_is_truthful_and_has_recovery_actions(
+        self,
+        send_otp,
+        _generate_code,
+    ):
+        response = self.client.post(
+            reverse('register'),
+            {
+                'username': 'failed_code',
+                'email': 'failed_code@example.com',
+                'role': 'candidate',
+                'password1': PASSWORD,
+                'password2': PASSWORD,
+            },
+            follow=True,
+        )
+
+        self.assertContains(response, 'We could not send a code to')
+        self.assertContains(response, 'f***e@example.com')
+        self.assertNotContains(response, 'A code was sent to')
+        self.assertContains(response, 'Resend code')
+        self.assertContains(response, 'Change email')
+        self.assertContains(response, 'Back to sign in')
+        self.assertContains(response, 'data-seconds-left="60"')
+        self.assertContains(response, '(available in 60s)')
+        self.assertFalse(self.client.session['otp_send_succeeded'])
+        send_otp.assert_called_once()
+
+    @override_settings(REGISTER_OTP_REQUIRED=True)
+    @patch('accounts.views.send_email_otp', return_value=True)
+    def test_successful_send_is_shown_truthfully_and_change_email_prefills_form(self, send_otp):
+        response = self.client.post(
+            reverse('register'),
+            {
+                'username': 'sent_code',
+                'email': 'sent_code@example.com',
+                'role': 'candidate',
+                'password1': PASSWORD,
+                'password2': PASSWORD,
+            },
+            follow=True,
+        )
+
+        self.assertContains(response, 'A code was sent to')
+        self.assertContains(response, 's***e@example.com')
+        self.assertNotContains(response, 'We could not send a code to')
+        self.assertContains(response, 'Back to sign in')
+        self.assertContains(
+            response,
+            f'{reverse("register")}?username=sent_code&amp;email=sent_code%40example.com',
+        )
+        self.assertTrue(self.client.session['otp_send_succeeded'])
+        register_response = self.client.get(
+            reverse('register'),
+            {'username': 'sent_code', 'email': 'sent_code@example.com'},
+        )
+        self.assertContains(register_response, 'value="sent_code"')
+        self.assertContains(register_response, 'value="sent_code@example.com"')
+        send_otp.assert_called_once()
+
+    @override_settings(REGISTER_OTP_REQUIRED=True)
+    @patch('accounts.views.send_email_otp', return_value=True)
+    def test_verify_page_get_and_refresh_do_not_send_or_resubmit(self, send_otp):
+        self.client.post(
+            reverse('register'),
+            {
+                'username': 'refresh_code',
+                'email': 'refresh_code@example.com',
+                'role': 'candidate',
+                'password1': PASSWORD,
+                'password2': PASSWORD,
+            },
+        )
+        verify_url = reverse('verify_otp')
+        first_response = self.client.get(verify_url)
+        second_response = self.client.get(verify_url)
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(second_response.status_code, 200)
+        self.assertEqual(send_otp.call_count, 1)
+        self.assertEqual(self.client.get(reverse('resend_otp')).status_code, 405)
+
+    @override_settings(REGISTER_OTP_REQUIRED=True)
+    @patch('accounts.views.OTPCode.generate_code', return_value='123456')
+    @patch('accounts.views.send_email_otp', return_value=True)
+    def test_invalid_code_post_redirects_and_refresh_does_not_repeat_attempt(
+        self,
+        send_otp,
+        _generate_code,
+    ):
+        self.client.post(
+            reverse('register'),
+            {
+                'username': 'invalid_code',
+                'email': 'invalid_code@example.com',
+                'role': 'candidate',
+                'password1': PASSWORD,
+                'password2': PASSWORD,
+            },
+        )
+        otp = OTPCode.objects.get(user__username='invalid_code')
+
+        response = self.client.post(reverse('verify_otp'), {'code': '999999'})
+        self.assertRedirects(response, reverse('verify_otp'))
+        self.assertEqual(OTPCode.objects.get(pk=otp.pk).attempts, 1)
+
+        self.client.get(reverse('verify_otp'))
+        self.assertEqual(OTPCode.objects.get(pk=otp.pk).attempts, 1)
+        self.assertEqual(send_otp.call_count, 1)
+
+    def test_rate_limited_verify_post_redirects_without_repeating_form_submission(self):
+        user = User.objects.create_user(
+            username='rate_limited_verify',
+            email='rate_limited_verify@example.com',
+            password=PASSWORD,
+        )
+        OTPCode.create_otp(user, OTPCode.Purpose.REGISTER)
+        session = self.client.session
+        session['pending_otp_user'] = user.pk
+        session['otp_purpose'] = OTPCode.Purpose.REGISTER
+        session.save()
+
+        with patch('accounts.ratelimit.check_rate_limit', return_value=(False, 5)):
+            response = self.client.post(reverse('verify_otp'), {'code': '999999'})
+
+        self.assertRedirects(
+            response,
+            reverse('verify_otp'),
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(OTPCode.objects.get(user=user).attempts, 0)
+
+    def test_lost_verification_session_redirects_to_register(self):
+        response = self.client.get(reverse('verify_otp'), follow=True)
+
+        self.assertRedirects(response, reverse('register'))
+        self.assertContains(response, 'Your verification session expired. Please register again.')
+
+    @override_settings(REGISTER_OTP_REQUIRED=True)
+    @patch('accounts.views.OTPCode.can_resend', return_value=(True, ''))
+    @patch('accounts.views.send_email_otp', return_value=False)
+    def test_failed_resend_updates_session_and_verify_message(self, send_otp, _can_resend):
+        self.client.post(
+            reverse('register'),
+            {
+                'username': 'resend_failed',
+                'email': 'resend_failed@example.com',
+                'role': 'candidate',
+                'password1': PASSWORD,
+                'password2': PASSWORD,
+            },
+        )
+
+        response = self.client.post(reverse('resend_otp'), follow=True)
+
+        self.assertContains(response, 'We could not send a code to')
+        self.assertNotContains(response, 'A code was sent to')
+        self.assertFalse(self.client.session['otp_send_succeeded'])
+        self.assertEqual(send_otp.call_count, 2)
+
+    @override_settings(REGISTER_OTP_REQUIRED=True)
+    @patch('accounts.views.send_email_otp', return_value=True)
+    def test_registration_replaces_matching_unverified_username_and_email(self, send_otp):
+        old_user = User.objects.create_user(
+            username='Retry_Registration',
+            email='retry_registration@example.com',
+            password=PASSWORD,
+        )
+        old_user.is_active = False
+        old_user.save(update_fields=['is_active'])
+
+        response = self.client.post(
+            reverse('register'),
+            {
+                'username': 'retry_registration',
+                'email': 'retry_registration@example.com',
+                'role': 'candidate',
+                'password1': PASSWORD,
+                'password2': PASSWORD,
+            },
+        )
+
+        self.assertRedirects(response, reverse('verify_otp'))
+        new_user = User.objects.get(username='retry_registration')
+        self.assertNotEqual(new_user.pk, old_user.pk)
+        self.assertFalse(new_user.is_active)
+        send_otp.assert_called_once()
+
+    @override_settings(REGISTER_OTP_REQUIRED=True)
+    @patch('accounts.views.send_email_otp', return_value=True)
+    def test_registration_replaces_unverified_account_matching_email_only(self, send_otp):
+        old_user = User.objects.create_user(
+            username='old_email_user',
+            email='reused_email@example.com',
+            password=PASSWORD,
+        )
+        old_user.is_active = False
+        old_user.save(update_fields=['is_active'])
+
+        response = self.client.post(
+            reverse('register'),
+            {
+                'username': 'new_email_user',
+                'email': 'reused_email@example.com',
+                'role': 'candidate',
+                'password1': PASSWORD,
+                'password2': PASSWORD,
+            },
+        )
+
+        self.assertRedirects(response, reverse('verify_otp'))
+        new_user = User.objects.get(username='new_email_user')
+        self.assertFalse(User.objects.filter(pk=old_user.pk).exists())
+        self.assertEqual(new_user.email, 'reused_email@example.com')
+        send_otp.assert_called_once()
+
+    def test_registration_never_deletes_active_account_conflicts(self):
+        active_user = User.objects.create_user(
+            username='Active_Registration',
+            email='active_registration@example.com',
+            password=PASSWORD,
+        )
+        inactive_user = User.objects.create_user(
+            username='inactive_email_conflict',
+            email='inactive_email@example.com',
+            password=PASSWORD,
+        )
+        inactive_user.is_active = False
+        inactive_user.save(update_fields=['is_active'])
+
+        username_conflict_response = self.client.post(
+            reverse('register'),
+            {
+                'username': 'active_registration',
+                'email': 'new_email@example.com',
+                'role': 'candidate',
+                'password1': PASSWORD,
+                'password2': PASSWORD,
+            },
+        )
+        self.assertEqual(username_conflict_response.status_code, 200)
+        self.assertTrue(User.objects.filter(pk=active_user.pk, is_active=True).exists())
+
+        response = self.client.post(
+            reverse('register'),
+            {
+                'username': 'inactive_email_conflict',
+                'email': active_user.email,
+                'role': 'candidate',
+                'password1': PASSWORD,
+                'password2': PASSWORD,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(User.objects.filter(pk=active_user.pk, is_active=True).exists())
+        self.assertTrue(User.objects.filter(pk=inactive_user.pk, is_active=False).exists())
+
+    def test_delete_unverified_accounts_dry_run_and_verified_account_protection(self):
+        stale = User.objects.create_user(
+            username='stale_unverified',
+            email='stale_unverified@example.com',
+            password=PASSWORD,
+        )
+        recent = User.objects.create_user(
+            username='recent_unverified',
+            email='recent_unverified@example.com',
+            password=PASSWORD,
+        )
+        verified_then_inactive = User.objects.create_user(
+            username='verified_inactive',
+            email='verified_inactive@example.com',
+            password=PASSWORD,
+        )
+        active = User.objects.create_user(
+            username='active_old_user',
+            email='active_old_user@example.com',
+            password=PASSWORD,
+        )
+        User.objects.filter(pk__in=[stale.pk, recent.pk, verified_then_inactive.pk]).update(
+            is_active=False,
+        )
+        old_date = timezone.now() - timedelta(hours=25)
+        User.objects.filter(pk__in=[stale.pk, verified_then_inactive.pk, active.pk]).update(
+            date_joined=old_date,
+        )
+        OTPCode.objects.create(
+            user=verified_then_inactive,
+            channel=OTPCode.Channel.EMAIL,
+            code_hash='unused-test-hash',
+            purpose=OTPCode.Purpose.REGISTER,
+            expires_on=timezone.now() + timedelta(minutes=10),
+            is_used=True,
+        )
+
+        output = StringIO()
+        call_command('delete_unverified_accounts', '--dry-run', stdout=output)
+        self.assertIn('1 unverified account(s) would be deleted', output.getvalue())
+        self.assertTrue(User.objects.filter(pk=stale.pk).exists())
+
+        call_command('delete_unverified_accounts', stdout=StringIO())
+        self.assertFalse(User.objects.filter(pk=stale.pk).exists())
+        self.assertTrue(User.objects.filter(pk=recent.pk).exists())
+        self.assertTrue(User.objects.filter(pk=verified_then_inactive.pk).exists())
+        self.assertTrue(User.objects.filter(pk=active.pk, is_active=True).exists())
 
     def test_cannot_register_as_admin(self):
         response = self.register('sneaky', 'admin')

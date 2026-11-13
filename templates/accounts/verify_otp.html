@@ -7,7 +7,11 @@
     <div class="card" style="padding: var(--space-6);">
         <h2 style="margin-bottom: var(--space-2); text-align: center;">Enter verification code</h2>
         <p style="color: var(--text-secondary); font-size: var(--font-small); text-align: center; margin-bottom: var(--space-6);">
-            A 6-digit code was sent to <strong>{{ target }}</strong>. It expires in 10 minutes.
+            {% if last_send_succeeded %}
+                A code was sent to <strong>{{ target }}</strong>. It expires in 10 minutes.
+            {% else %}
+                We could not send a code to <strong>{{ target }}</strong>.
+            {% endif %}
         </p>
 
         <form method="post" action="{% url 'verify_otp' %}">
@@ -31,15 +35,52 @@
                 Did not receive the code?
             </p>
             <div style="display: flex; justify-content: center; gap: var(--space-4); flex-wrap: wrap;">
-                <a href="{% url 'resend_otp' %}" style="font-weight: 500;">Resend email code</a>
+                <form method="post" action="{% url 'resend_otp' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline">
+                        Resend code
+                        <span
+                            id="resend-countdown"
+                            data-seconds-left="{{ cooldown_seconds }}"
+                            aria-live="polite"
+                        >{% if cooldown_seconds %}(available in {{ cooldown_seconds }}s){% endif %}</span>
+                    </button>
+                </form>
                 {% if sms_available %}
-                    <a href="{% url 'resend_otp' %}?channel=sms" style="font-weight: 500;">Send via SMS instead</a>
+                    <form method="post" action="{% url 'resend_otp' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="channel" value="sms">
+                        <button type="submit" class="btn btn-outline">Send via SMS instead</button>
+                    </form>
                 {% endif %}
             </div>
             <div style="margin-top: var(--space-4);">
-                <a href="{% url 'login' %}" style="color: var(--text-muted);">Back to sign in</a>
+                <a
+                    class="btn btn-outline"
+                    href="{% url 'register' %}?username={{ user_obj.username|urlencode }}&amp;email={{ user_obj.email|urlencode }}"
+                >Change email</a>
+                <a class="btn btn-outline" href="{% url 'login' %}" style="color: var(--text-muted);">Back to sign in</a>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const countdown = document.getElementById('resend-countdown');
+    let secondsLeft = Number(countdown ? countdown.dataset.secondsLeft : 0);
+    if (countdown && secondsLeft > 0) {
+        const updateCountdown = () => {
+            countdown.textContent = `(available in ${secondsLeft}s)`;
+            secondsLeft -= 1;
+            if (secondsLeft >= 0) {
+                window.setTimeout(updateCountdown, 1000);
+            } else {
+                countdown.textContent = '';
+            }
+        };
+        updateCountdown();
+    }
+</script>
 {% endblock %}

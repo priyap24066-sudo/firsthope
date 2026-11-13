@@ -7,6 +7,7 @@ from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Exists, OuterRef
 from django.utils import timezone
 
 INDIAN_PHONE_REGEX = re.compile(r'^(?:\+91|91|0)?([6-9]\d{9})$')
@@ -42,7 +43,9 @@ class User(AbstractUser):
             existing = User.objects.filter(email__iexact=self.email)
             if self.pk:
                 existing = existing.exclude(pk=self.pk)
-            if existing.exists():
+            if existing.exclude(
+                pk__in=never_verified_users().values('pk'),
+            ).exists():
                 raise ValidationError({'email': 'A user with this email address already exists.'})
         if self.phone:
             normalized = normalize_indian_phone(self.phone)
@@ -226,6 +229,17 @@ class OTPCode(models.Model):
             if remaining > 0:
                 return False, f'Invalid OTP. {remaining} attempt{"s" if remaining > 1 else ""} remaining.'
             return False, 'Too many failed attempts. This OTP has been invalidated.'
+
+
+def never_verified_users():
+    successful_registration_otp = OTPCode.objects.filter(
+        user_id=OuterRef('pk'),
+        purpose=OTPCode.Purpose.REGISTER,
+        is_used=True,
+    )
+    return User.objects.filter(is_active=False).annotate(
+        has_verified_registration=Exists(successful_registration_otp),
+    ).filter(has_verified_registration=False)
 
 
 class RecruiterDocument(models.Model):

@@ -1,7 +1,10 @@
 import time
 from functools import wraps
+
+from django.contrib import messages
 from django.core.cache import cache
 from django.http import HttpResponse
+from django.shortcuts import redirect
 
 
 def get_client_ip(request):
@@ -39,6 +42,12 @@ def ratelimit_view(key_prefix, limit=10, window_seconds=60):
             ip = get_client_ip(request)
             allowed, reset_in = check_rate_limit(key_prefix, ip, limit=limit, window_seconds=window_seconds)
             if not allowed:
+                if key_prefix in ('verify_otp', 'resend_otp') and request.method == 'POST':
+                    messages.error(
+                        request,
+                        f'Too many requests. Please wait {reset_in} seconds before trying again.',
+                    )
+                    return redirect('verify_otp')
                 return HttpResponse(
                     f"Too many requests. Please slow down and try again in {reset_in} seconds.",
                     status=429

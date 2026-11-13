@@ -1,12 +1,16 @@
+import math
 import re
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count
+from django.db import transaction
+from django.db.models import Count, Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .forms import (
@@ -23,6 +27,7 @@ from .models import (
     RecruiterDocument,
     RecruiterProfile,
     User,
+    never_verified_users,
 )
 from .email_delivery import EMAIL_SEND_FAILURE_MESSAGE, email_delivery_available
 from .otp_sender import is_sms_configured, send_email_otp, send_sms_otp
@@ -83,23 +88,48 @@ def register(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.is_active = not settings.REGISTER_OTP_REQUIRED
-            user.save()
+            username = form.cleaned_data['username']
+            email = form.cleaned_data['email']
+            with transaction.atomic():
+                conflicts = User.objects.filter(
+                    Q(username__iexact=username) | Q(email__iexact=email),
+                ).exclude(pk__in=never_verified_users().values('pk'))
+                if conflicts.exists():
+                    form.add_error(
+                        None,
+                        'An account with that username or email already exists. Please sign in.',
+                    )
+                else:
+                    never_verified_users().filter(
+                        Q(username__iexact=username) | Q(email__iexact=email),
+                    ).delete()
+                    user = form.save(commit=False)
+                    user.is_active = not settings.REGISTER_OTP_REQUIRED
+                    user.save()
+
+                    if settings.REGISTER_OTP_REQUIRED:
+                        _, raw_code = OTPCode.create_otp(
+                            user=user,
+                            purpose=OTPCode.Purpose.REGISTER,
+                        )
+
+            if form.errors:
+                return render(request, 'accounts/register.html', {
+                    'form': form,
+                    'otp_required': settings.REGISTER_OTP_REQUIRED,
+                })
 
             if settings.REGISTER_OTP_REQUIRED:
-                # Create & send registration OTP
-                otp, raw_code = OTPCode.create_otp(user=user, purpose=OTPCode.Purpose.REGISTER)
                 email_sent = send_email_otp(user, raw_code, purpose='register')
-
                 request.session['pending_otp_user'] = user.id
                 request.session['otp_purpose'] = OTPCode.Purpose.REGISTER
                 request.session['otp_channel'] = 'email'
+                request.session['otp_send_succeeded'] = bool(email_sent)
 
                 if email_sent:
                     messages.success(
                         request,
-                        f'Account created! We have sent a 6-digit verification code to {user.email}. Please verify below.',
+                        f'A code was sent to {user.email}. Please verify below.',
                     )
                 else:
                     messages.error(request, EMAIL_SEND_FAILURE_MESSAGE)
@@ -109,7 +139,10 @@ def register(request):
             messages.success(request, 'Account created successfully. Welcome to FirstHope!')
             return redirect('dashboard')
     else:
-        form = RegisterForm()
+        form = RegisterForm(initial={
+            'username': request.GET.get('username', ''),
+            'email': request.GET.get('email', ''),
+        })
 
     return render(request, 'accounts/register.html', {
         'form': form,
@@ -123,51 +156,69 @@ def verify_otp(request):
     purpose = request.session.get('otp_purpose', OTPCode.Purpose.REGISTER)
 
     if not user_id:
-        messages.info(request, 'No verification session in progress. Please log in or register.')
-        return redirect('login')
+        for key in ('otp_purpose', 'otp_channel', 'otp_send_succeeded'):
+            request.session.pop(key, None)
+        messages.info(request, 'Your verification session expired. Please register again.')
+        return redirect('register')
 
-    user = get_object_or_404(User, pk=user_id)
+    user = User.objects.filter(pk=user_id).first()
+    if user is None:
+        for key in ('pending_otp_user', 'otp_purpose', 'otp_channel', 'otp_send_succeeded'):
+            request.session.pop(key, None)
+        messages.info(request, 'Your verification session expired. Please register again.')
+        return redirect('register')
 
     if request.method == 'POST':
         form = VerifyOTPForm(request.POST)
-        if form.is_valid():
-            code = form.cleaned_data['code']
-            active_otp = OTPCode.objects.filter(
-                user=user,
-                purpose=purpose,
-                is_used=False,
-            ).first()
+        if not form.is_valid():
+            messages.error(request, 'Please enter a valid 6-digit verification code.')
+            return redirect('verify_otp')
 
-            if not active_otp:
-                messages.error(request, 'No active OTP found. Please request a new code.')
-            else:
-                success, msg = active_otp.verify(code)
-                if success:
-                    # Clear session keys
-                    request.session.pop('pending_otp_user', None)
-                    request.session.pop('otp_purpose', None)
-                    request.session.pop('otp_channel', None)
+        active_otp = OTPCode.objects.filter(
+            user=user,
+            purpose=purpose,
+            is_used=False,
+        ).first()
+        if not active_otp:
+            messages.error(request, 'No active code was found. Please request a new one.')
+            return redirect('verify_otp')
 
-                    if purpose == OTPCode.Purpose.REGISTER:
-                        user.is_active = True
-                        user.save(update_fields=['is_active'])
-                        login(request, user)
-                        messages.success(request, 'Email verified successfully! Welcome to FirstHope.')
-                        return redirect('dashboard')
-                    else:
-                        login(request, user)
-                        messages.success(request, 'Verification successful.')
-                        next_url = request.GET.get('next') or 'dashboard'
-                        return redirect(next_url)
-                else:
-                    messages.error(request, msg)
+        success, msg = active_otp.verify(form.cleaned_data['code'])
+        if success:
+            for key in (
+                'pending_otp_user',
+                'otp_purpose',
+                'otp_channel',
+                'otp_send_succeeded',
+            ):
+                request.session.pop(key, None)
+
+            if purpose == OTPCode.Purpose.REGISTER:
+                user.is_active = True
+                user.save(update_fields=['is_active'])
+                login(request, user)
+                messages.success(request, 'Email verified successfully! Welcome to FirstHope.')
+                return redirect('dashboard')
+            login(request, user)
+            messages.success(request, 'Verification successful.')
+            next_url = request.GET.get('next') or 'dashboard'
+            return redirect(next_url)
+
+        messages.error(request, msg)
+        return redirect('verify_otp')
     else:
         form = VerifyOTPForm()
 
     channel = request.session.get('otp_channel', 'email')
-    masked_target = user.email
+    masked_target = _mask_email(user.email)
     if channel == 'sms' and user.phone:
         masked_target = f"+91 ******{user.phone[-4:]}"
+
+    last_otp = OTPCode.objects.filter(user=user, purpose=purpose).first()
+    cooldown_seconds = 0
+    if last_otp:
+        elapsed = (timezone.now() - last_otp.created_on).total_seconds()
+        cooldown_seconds = max(0, math.ceil(60 - elapsed))
 
     context = {
         'form': form,
@@ -175,21 +226,42 @@ def verify_otp(request):
         'purpose': purpose,
         'channel': channel,
         'target': masked_target,
+        'last_send_succeeded': request.session.get('otp_send_succeeded') is True,
+        'cooldown_seconds': cooldown_seconds,
         'sms_available': is_sms_configured() and bool(user.phone),
     }
     return render(request, 'accounts/verify_otp.html', context)
 
 
+def _mask_email(email):
+    local, separator, domain = email.partition('@')
+    if not separator:
+        return '***'
+    if len(local) > 1:
+        masked_local = f'{local[0]}***{local[-1]}'
+    else:
+        masked_local = f'{local}***'
+    return f'{masked_local}@{domain}'
+
+
 @ratelimit_view('resend_otp', limit=10, window_seconds=60)
+@require_POST
 def resend_otp(request):
     user_id = request.session.get('pending_otp_user')
     purpose = request.session.get('otp_purpose', OTPCode.Purpose.REGISTER)
 
     if not user_id:
-        messages.error(request, 'Session expired. Please sign in or register again.')
-        return redirect('login')
+        for key in ('otp_purpose', 'otp_channel', 'otp_send_succeeded'):
+            request.session.pop(key, None)
+        messages.info(request, 'Your verification session expired. Please register again.')
+        return redirect('register')
 
-    user = get_object_or_404(User, pk=user_id)
+    user = User.objects.filter(pk=user_id).first()
+    if user is None:
+        for key in ('pending_otp_user', 'otp_purpose', 'otp_channel', 'otp_send_succeeded'):
+            request.session.pop(key, None)
+        messages.info(request, 'Your verification session expired. Please register again.')
+        return redirect('register')
 
     # Check cooldown and hourly limit
     can_resend, reason = OTPCode.can_resend(user, purpose)
@@ -198,21 +270,30 @@ def resend_otp(request):
         return redirect('verify_otp')
 
     # Desired channel
-    channel = request.GET.get('channel', request.session.get('otp_channel', 'email'))
+    channel = request.POST.get('channel', request.session.get('otp_channel', 'email'))
     if channel == 'sms' and not (is_sms_configured() and user.phone):
         channel = 'email'
 
     request.session['otp_channel'] = channel
 
     otp_channel = OTPCode.Channel.SMS if channel == 'sms' else OTPCode.Channel.EMAIL
-    otp, raw_code = OTPCode.create_otp(user=user, purpose=purpose, channel=otp_channel)
+    _, raw_code = OTPCode.create_otp(user=user, purpose=purpose, channel=otp_channel)
 
     if channel == 'sms':
-        send_sms_otp(user, raw_code, purpose=purpose)
-        messages.success(request, f'A new verification code was sent to your phone (+91 ******{user.phone[-4:]}).')
+        send_succeeded = send_sms_otp(user, raw_code, purpose=purpose)
+        request.session['otp_send_succeeded'] = bool(send_succeeded)
+        if send_succeeded:
+            messages.success(request, f'A code was sent to +91 ******{user.phone[-4:]}.')
+        else:
+            messages.error(
+                request,
+                'We could not send a verification code right now. Please try again in a minute.',
+            )
     else:
-        if send_email_otp(user, raw_code, purpose=purpose):
-            messages.success(request, f'A new verification code was sent to {user.email}.')
+        send_succeeded = send_email_otp(user, raw_code, purpose=purpose)
+        request.session['otp_send_succeeded'] = bool(send_succeeded)
+        if send_succeeded:
+            messages.success(request, f'A code was sent to {user.email}.')
         else:
             messages.error(request, EMAIL_SEND_FAILURE_MESSAGE)
 
@@ -249,18 +330,29 @@ def login_view(request):
             # Check if user registered but never verified OTP
             if not user.is_active:
                 # Allow them to verify registration
+                same_pending_request = (
+                    request.session.get('pending_otp_user') == user.pk
+                    and request.session.get('otp_purpose') == OTPCode.Purpose.REGISTER
+                )
+                previous_send_succeeded = (
+                    same_pending_request
+                    and request.session.get('otp_send_succeeded') is True
+                )
                 request.session['pending_otp_user'] = user.id
                 request.session['otp_purpose'] = OTPCode.Purpose.REGISTER
                 request.session['otp_channel'] = 'email'
+                request.session['otp_send_succeeded'] = previous_send_succeeded
 
                 can_send, _ = OTPCode.can_resend(user, OTPCode.Purpose.REGISTER)
-                email_sent = True
                 if can_send:
                     _, raw_code = OTPCode.create_otp(user, OTPCode.Purpose.REGISTER)
                     email_sent = send_email_otp(user, raw_code, purpose='register')
+                    request.session['otp_send_succeeded'] = bool(email_sent)
+                else:
+                    email_sent = previous_send_succeeded
 
                 if email_sent:
-                    messages.info(request, 'Your account is pending verification. Please enter the OTP sent to your email.')
+                    messages.info(request, 'Your account is pending verification. Please enter the code sent to your email.')
                 else:
                     messages.error(request, EMAIL_SEND_FAILURE_MESSAGE)
                 return redirect('verify_otp')
@@ -268,18 +360,29 @@ def login_view(request):
             # User credentials are valid. Check if 2FA login OTP is required.
             login_otp_required = getattr(settings, 'LOGIN_OTP_REQUIRED', True)
             if login_otp_required:
+                same_pending_request = (
+                    request.session.get('pending_otp_user') == user.pk
+                    and request.session.get('otp_purpose') == OTPCode.Purpose.LOGIN
+                )
+                previous_send_succeeded = (
+                    same_pending_request
+                    and request.session.get('otp_send_succeeded') is True
+                )
                 request.session['pending_otp_user'] = user.id
                 request.session['otp_purpose'] = OTPCode.Purpose.LOGIN
                 request.session['otp_channel'] = 'email'
+                request.session['otp_send_succeeded'] = previous_send_succeeded
 
                 can_send, _ = OTPCode.can_resend(user, OTPCode.Purpose.LOGIN)
-                email_sent = True
                 if can_send:
                     _, raw_code = OTPCode.create_otp(user, OTPCode.Purpose.LOGIN)
                     email_sent = send_email_otp(user, raw_code, purpose='login')
+                    request.session['otp_send_succeeded'] = bool(email_sent)
+                else:
+                    email_sent = previous_send_succeeded
 
                 if email_sent:
-                    messages.info(request, f'Verification code sent to {user.email}. Enter it below to complete sign in.')
+                    messages.info(request, 'A verification code was sent to your email. Enter it below to complete sign in.')
                 else:
                     messages.error(request, EMAIL_SEND_FAILURE_MESSAGE)
                 return redirect('verify_otp')

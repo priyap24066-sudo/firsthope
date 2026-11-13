@@ -12,6 +12,7 @@ from .models import (
     RecruiterDocument,
     RecruiterProfile,
     User,
+    never_verified_users,
     normalize_indian_phone,
 )
 
@@ -108,13 +109,34 @@ class RegisterForm(UserCreationForm):
         model = User
         fields = ('username', 'email', 'phone', 'role')
 
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        matching = User.objects.filter(username__iexact=username)
+        if matching.exclude(pk__in=never_verified_users().values('pk')).exists():
+            raise forms.ValidationError('A user with that username already exists.')
+        return username
+
     def clean_email(self):
         email = self.cleaned_data.get('email', '').strip().lower()
         if not email:
             raise forms.ValidationError('Email address is required.')
-        if User.objects.filter(email__iexact=email).exists():
+        matching = User.objects.filter(email__iexact=email)
+        if matching.exclude(pk__in=never_verified_users().values('pk')).exists():
             raise forms.ValidationError('An account with this email address already exists.')
         return email
+
+    def _get_validation_exclusions(self):
+        exclude = super()._get_validation_exclusions()
+        username = self.cleaned_data.get('username')
+        matching = (
+            User.objects.filter(username__iexact=username)
+            if username else User.objects.none()
+        )
+        if matching.exists() and not matching.exclude(
+            pk__in=never_verified_users().values('pk'),
+        ).exists():
+            exclude.add('username')
+        return exclude
 
     def clean_phone(self):
         phone_input = self.cleaned_data.get('phone', '').strip()
