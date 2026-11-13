@@ -141,7 +141,6 @@ class MeView(APIView):
         if user.role == User.Role.CANDIDATE and hasattr(user, 'candidate_profile'):
             p = user.candidate_profile
             data['profile'] = {
-                'phone': p.phone,
                 'location': p.location,
                 'skills': p.skills,
                 'experience_years': p.experience_years,

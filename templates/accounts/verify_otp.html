@@ -46,13 +46,6 @@
                         >{% if cooldown_seconds %}(available in {{ cooldown_seconds }}s){% endif %}</span>
                     </button>
                 </form>
-                {% if sms_available %}
-                    <form method="post" action="{% url 'resend_otp' %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="channel" value="sms">
-                        <button type="submit" class="btn btn-outline">Send via SMS instead</button>
-                    </form>
-                {% endif %}
             </div>
             <div style="margin-top: var(--space-4);">
                 <a

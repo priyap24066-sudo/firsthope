@@ -214,7 +214,6 @@ else:
 # Authentication & OTP settings
 LOGIN_OTP_REQUIRED = os.environ.get('LOGIN_OTP_REQUIRED', 'False').lower() in ('true', '1')
 REGISTER_OTP_REQUIRED = os.environ.get('REGISTER_OTP_REQUIRED', 'True').lower() in ('true', '1')
-SMS_PROVIDER = os.environ.get('SMS_PROVIDER', '')
 
 # AI Coach settings
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')

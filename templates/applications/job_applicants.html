@@ -36,14 +36,11 @@
                 <div>
                     <h3 style="font-size: 16px; margin-bottom: 4px;">
                         {{ app.candidate.username }}
-                        <span style="font-size: var(--font-small); font-weight: normal; color: var(--text-muted);">
-                            &bull; {{ app.candidate.email }}
-                        </span>
                     </h3>
                     <div style="font-size: var(--font-small); color: var(--text-secondary);">
+                        Email: <a href="mailto:{{ app.candidate.email }}">{{ app.candidate.email }}</a>
                         {% if app.candidate.candidate_profile %}
-                            {% if app.candidate.candidate_profile.phone %}Phone: {{ app.candidate.candidate_profile.phone }} &bull; {% endif %}
-                            Experience: {{ app.candidate.candidate_profile.experience_years }} year{{ app.candidate.candidate_profile.experience_years|pluralize }}
+                            &bull; Experience: {{ app.candidate.candidate_profile.experience_years }} year{{ app.candidate.candidate_profile.experience_years|pluralize }}
                             {% if app.candidate.candidate_profile.education %} &bull; {{ app.candidate.candidate_profile.education }}{% endif %}
                         {% endif %}
                     </div>

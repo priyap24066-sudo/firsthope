@@ -37,7 +37,6 @@ class AIClientTests(TestCase):
         ]
         user = SimpleNamespace(
             email='private@example.com',
-            phone='9876543210',
             candidate_profile=SimpleNamespace(
                 education='BSc Computer Science',
                 skills='Python, Django',
@@ -65,7 +64,6 @@ class AIClientTests(TestCase):
         self.assertIn('Python, Django', system_instruction)
         self.assertIn('2 years', system_instruction)
         self.assertNotIn(user.email, system_instruction)
-        self.assertNotIn(user.phone, system_instruction)
         self.assertNotIn('Private profile details', system_instruction)
 
     @override_settings(GEMINI_API_KEY='test-key')

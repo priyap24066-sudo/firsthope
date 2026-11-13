@@ -39,6 +39,17 @@ class ApiTests(APITestCase):
         response = self.client.get('/api/me/')
         self.assertIn(response.status_code, (401, 403))
 
+    def test_me_does_not_expose_legacy_phone_fields(self):
+        self.cand1.candidate_profile.phone = '123-legacy-data'
+        self.cand1.candidate_profile.save(update_fields=['phone'])
+        self.client.force_authenticate(user=self.cand1)
+
+        response = self.client.get('/api/me/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('phone', response.data['profile'])
+        self.assertNotIn('phone', response.data)
+
     def test_candidate_cannot_create_job(self):
         self.client.force_authenticate(user=self.cand1)
         response = self.client.post('/api/jobs/', {'title': 'X'}, format='json')

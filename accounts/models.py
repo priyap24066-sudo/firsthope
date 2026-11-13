@@ -1,4 +1,3 @@
-import re
 import secrets
 from datetime import timedelta
 
@@ -9,19 +8,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Exists, OuterRef
 from django.utils import timezone
-
-INDIAN_PHONE_REGEX = re.compile(r'^(?:\+91|91|0)?([6-9]\d{9})$')
-
-
-def normalize_indian_phone(value):
-    if not value:
-        return None
-    cleaned = re.sub(r'[\s\-()]', '', value.strip())
-    match = INDIAN_PHONE_REGEX.match(cleaned)
-    if not match:
-        raise ValidationError('Enter a valid Indian mobile number (10 digits, optional +91).')
-    return match.group(1)
-
 
 class User(AbstractUser):
     class Role(models.TextChoices):
@@ -34,7 +20,13 @@ class User(AbstractUser):
         choices=Role.choices,
         default=Role.CANDIDATE,
     )
-    phone = models.CharField(max_length=20, blank=True, null=True, unique=True)
+    phone = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        unique=True,
+        # Deprecated: retained to preserve existing database data; no longer used.
+    )
 
     def clean(self):
         super().clean()
@@ -46,15 +38,9 @@ class User(AbstractUser):
             if existing.exclude(
                 pk__in=never_verified_users().values('pk'),
             ).exists():
-                raise ValidationError({'email': 'A user with this email address already exists.'})
-        if self.phone:
-            normalized = normalize_indian_phone(self.phone)
-            existing_phone = User.objects.filter(phone=normalized)
-            if self.pk:
-                existing_phone = existing_phone.exclude(pk=self.pk)
-            if existing_phone.exists():
-                raise ValidationError({'phone': 'A user with this mobile number already exists.'})
-            self.phone = normalized
+                raise ValidationError({
+                    'email': 'This email is already registered. Sign in instead.'
+                })
 
     def save(self, *args, **kwargs):
         if self.is_superuser:
@@ -63,13 +49,6 @@ class User(AbstractUser):
             self.email = f"{self.username}@example.com"
         if self.email:
             self.email = self.email.strip().lower()
-        if self.phone == '':
-            self.phone = None
-        elif self.phone:
-            try:
-                self.phone = normalize_indian_phone(self.phone)
-            except ValidationError:
-                pass
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -80,7 +59,11 @@ class CandidateProfile(models.Model):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name='candidate_profile'
     )
-    phone = models.CharField(max_length=15, blank=True)
+    phone = models.CharField(
+        max_length=15,
+        blank=True,
+        # Deprecated: retained to preserve existing database data; no longer used.
+    )
     location = models.CharField(max_length=100, blank=True)
     skills = models.CharField(
         max_length=255, blank=True, help_text='Comma separated, e.g. Python, Django, SQL'
@@ -146,7 +129,6 @@ class RecruiterProfile(models.Model):
 class OTPCode(models.Model):
     class Channel(models.TextChoices):
         EMAIL = 'email', 'Email'
-        SMS = 'sms', 'SMS'
 
     class Purpose(models.TextChoices):
         REGISTER = 'register', 'Register'

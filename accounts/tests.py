@@ -24,6 +24,7 @@ from .email_delivery import (
     EMAIL_SEND_FAILURE_MESSAGE,
     email_delivery_available,
 )
+from .forms import CandidateProfileForm, RegisterForm
 from .models import CandidateProfile, OTPCode, RecruiterDocument, RecruiterProfile, User
 from .otp_sender import send_email_otp
 
@@ -367,6 +368,36 @@ class RegistrationTests(TestCase):
             'password2': PASSWORD,
         })
 
+    def test_registration_and_candidate_profile_forms_do_not_expose_phone(self):
+        registration_form = RegisterForm()
+        candidate_profile_form = CandidateProfileForm()
+
+        self.assertEqual(
+            list(registration_form.fields),
+            ['username', 'email', 'role', 'password1', 'password2'],
+        )
+        self.assertNotIn('phone', registration_form.fields)
+        self.assertNotIn('phone', candidate_profile_form.fields)
+        self.assertNotIn('phone', self.client.get(reverse('register')).content.decode().lower())
+
+    @override_settings(LOGIN_OTP_REQUIRED=False)
+    def test_login_does_not_accept_legacy_phone_as_identifier(self):
+        user = User.objects.create_user(
+            username='phone_login_user',
+            email='phone_login@example.com',
+            password=PASSWORD,
+            phone='9876543210',
+        )
+
+        response = self.client.post(reverse('login'), {
+            'username': '9876543210',
+            'password': PASSWORD,
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('_auth_user_id', self.client.session)
+        self.assertTrue(User.objects.filter(pk=user.pk).exists())
+
     @override_settings(REGISTER_OTP_REQUIRED=False)
     def test_home_and_register_hide_otp_copy_when_otp_is_disabled(self):
         home_response = self.client.get(reverse('home'))
@@ -431,11 +462,11 @@ class RegistrationTests(TestCase):
         self.assertRedirects(response, reverse('dashboard'))
         self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
 
-    def test_registration_shows_friendly_message_if_email_fails(self):
+    def test_registration_send_exception_rolls_back_and_keeps_registration_form(self):
         with patch(
             'accounts.email_delivery.send_mail',
             side_effect=RuntimeError('OTP 123456 API key secret-value'),
-        ):
+        ), self.assertLogs('accounts.email_delivery', level='ERROR') as captured:
             response = self.client.post(
                 reverse('register'),
                 {
@@ -445,42 +476,113 @@ class RegistrationTests(TestCase):
                     'password1': PASSWORD,
                     'password2': PASSWORD,
                 },
-                follow=True,
             )
 
-        self.assertContains(response, EMAIL_SEND_FAILURE_MESSAGE)
         self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            'We could not send the verification email right now. Please check the email address and try again in a minute.',
+        )
+        self.assertContains(response, 'value="failed_email"')
+        self.assertContains(response, 'value="failed_email@example.com"')
+        self.assertNotContains(response, f'value="{PASSWORD}"')
+        self.assertFalse(User.objects.filter(username='failed_email').exists())
+        self.assertFalse(OTPCode.objects.filter(user__username='failed_email').exists())
+        self.assertEqual(
+            captured.output,
+            ['ERROR:accounts.email_delivery:Email delivery failed (RuntimeError)'],
+        )
 
     @override_settings(REGISTER_OTP_REQUIRED=True)
-    @patch('accounts.views.OTPCode.generate_code', return_value='123456')
-    @patch('accounts.views.send_email_otp', return_value=False)
-    def test_failed_registration_send_is_truthful_and_has_recovery_actions(
-        self,
-        send_otp,
-        _generate_code,
-    ):
+    @patch('accounts.views.send_email_otp', side_effect=[False, True])
+    def test_registration_failed_send_rolls_back_without_redirect(self, send_otp):
+        registration_data = {
+            'username': 'failed_return',
+            'email': 'failed_return@example.com',
+            'role': 'recruiter',
+            'password1': PASSWORD,
+            'password2': PASSWORD,
+        }
+        response = self.client.post(reverse('register'), registration_data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.templates[0].name, 'accounts/register.html')
+        self.assertContains(
+            response,
+            'We could not send the verification email right now. Please check the email address and try again in a minute.',
+        )
+        self.assertContains(response, 'value="failed_return"')
+        self.assertContains(response, 'value="failed_return@example.com"')
+        self.assertContains(response, 'value="recruiter"')
+        self.assertFalse(User.objects.filter(username='failed_return').exists())
+        self.assertFalse(OTPCode.objects.filter(user__username='failed_return').exists())
+
+        retry_response = self.client.post(reverse('register'), registration_data)
+        self.assertRedirects(
+            retry_response,
+            reverse('verify_otp'),
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(User.objects.filter(username='failed_return', is_active=False).exists())
+        self.assertEqual(OTPCode.objects.filter(user__username='failed_return').count(), 1)
+        self.assertEqual(send_otp.call_count, 2)
+
+    @override_settings(REGISTER_OTP_REQUIRED=True)
+    @patch('accounts.views.send_email_otp', return_value=True)
+    def test_registration_success_redirects_to_verify(self, send_otp):
         response = self.client.post(
             reverse('register'),
             {
-                'username': 'failed_code',
-                'email': 'failed_code@example.com',
+                'username': 'success_code',
+                'email': 'success_code@example.com',
                 'role': 'candidate',
                 'password1': PASSWORD,
                 'password2': PASSWORD,
             },
-            follow=True,
         )
 
-        self.assertContains(response, 'We could not send a code to')
-        self.assertContains(response, 'f***e@example.com')
-        self.assertNotContains(response, 'A code was sent to')
-        self.assertContains(response, 'Resend code')
-        self.assertContains(response, 'Change email')
-        self.assertContains(response, 'Back to sign in')
-        self.assertContains(response, 'data-seconds-left="60"')
-        self.assertContains(response, '(available in 60s)')
-        self.assertFalse(self.client.session['otp_send_succeeded'])
+        self.assertRedirects(response, reverse('verify_otp'), fetch_redirect_response=False)
+        self.assertTrue(User.objects.filter(username='success_code', is_active=False).exists())
+        self.assertTrue(OTPCode.objects.filter(user__username='success_code').exists())
         send_otp.assert_called_once()
+
+    @patch('accounts.views.send_email_otp')
+    def test_active_email_and_username_conflicts_have_sign_in_link(self, send_otp):
+        active = User.objects.create_user(
+            username='active_registration',
+            email='active_registration@example.com',
+            password=PASSWORD,
+        )
+        cases = (
+            ('new_username', active.email, 'email'),
+            ('active_registration', 'new_email@example.com', 'username'),
+        )
+
+        for username, email, field_name in cases:
+            with self.subTest(field=field_name):
+                response = self.client.post(
+                    reverse('register'),
+                    {
+                        'username': username,
+                        'email': email,
+                        'role': 'candidate',
+                        'password1': PASSWORD,
+                        'password2': PASSWORD,
+                    },
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(
+                    response,
+                    'This email is already registered. Sign in instead.',
+                )
+                self.assertContains(response, reverse('login'))
+                self.assertEqual(
+                    OTPCode.objects.filter(user__username=username).count(),
+                    0,
+                )
+        active.refresh_from_db()
+        self.assertTrue(active.is_active)
+        send_otp.assert_not_called()
 
     @override_settings(REGISTER_OTP_REQUIRED=True)
     @patch('accounts.views.send_email_otp', return_value=True)
@@ -594,7 +696,7 @@ class RegistrationTests(TestCase):
 
     @override_settings(REGISTER_OTP_REQUIRED=True)
     @patch('accounts.views.OTPCode.can_resend', return_value=(True, ''))
-    @patch('accounts.views.send_email_otp', return_value=False)
+    @patch('accounts.views.send_email_otp', side_effect=[True, False])
     def test_failed_resend_updates_session_and_verify_message(self, send_otp, _can_resend):
         self.client.post(
             reverse('register'),
@@ -606,11 +708,16 @@ class RegistrationTests(TestCase):
                 'password2': PASSWORD,
             },
         )
+        self.client.get(reverse('verify_otp'))
 
         response = self.client.post(reverse('resend_otp'), follow=True)
 
         self.assertContains(response, 'We could not send a code to')
         self.assertNotContains(response, 'A code was sent to')
+        self.assertContains(
+            response,
+            'We could not send the verification email right now. Please check the email address and try again in a minute.',
+        )
         self.assertFalse(self.client.session['otp_send_succeeded'])
         self.assertEqual(send_otp.call_count, 2)
 

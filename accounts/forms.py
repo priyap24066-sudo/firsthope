@@ -13,8 +13,9 @@ from .models import (
     RecruiterProfile,
     User,
     never_verified_users,
-    normalize_indian_phone,
 )
+
+ACTIVE_ACCOUNT_ERROR = 'This email is already registered. Sign in instead.'
 
 ALLOWED_DOC_EXTENSIONS = {'.pdf', '.jpg', '.jpeg', '.png'}
 ALLOWED_CONTENT_TYPES = {'application/pdf', 'image/jpeg', 'image/png', 'image/pjpeg'}
@@ -90,12 +91,6 @@ class RegisterForm(UserCreationForm):
         label='Email address',
         help_text='A verification code will be sent to this email.',
     )
-    phone = forms.CharField(
-        required=False,
-        label='Mobile number (Optional)',
-        help_text='10-digit Indian mobile number (optional +91).',
-        widget=forms.TextInput(attrs={'placeholder': 'e.g. 9876543210'}),
-    )
     role = forms.ChoiceField(
         label='I want to',
         choices=[
@@ -107,13 +102,13 @@ class RegisterForm(UserCreationForm):
 
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ('username', 'email', 'phone', 'role')
+        fields = ('username', 'email', 'role')
 
     def clean_username(self):
         username = self.cleaned_data.get('username')
         matching = User.objects.filter(username__iexact=username)
         if matching.exclude(pk__in=never_verified_users().values('pk')).exists():
-            raise forms.ValidationError('A user with that username already exists.')
+            raise forms.ValidationError(ACTIVE_ACCOUNT_ERROR)
         return username
 
     def clean_email(self):
@@ -122,7 +117,7 @@ class RegisterForm(UserCreationForm):
             raise forms.ValidationError('Email address is required.')
         matching = User.objects.filter(email__iexact=email)
         if matching.exclude(pk__in=never_verified_users().values('pk')).exists():
-            raise forms.ValidationError('An account with this email address already exists.')
+            raise forms.ValidationError(ACTIVE_ACCOUNT_ERROR)
         return email
 
     def _get_validation_exclusions(self):
@@ -137,20 +132,6 @@ class RegisterForm(UserCreationForm):
         ).exists():
             exclude.add('username')
         return exclude
-
-    def clean_phone(self):
-        phone_input = self.cleaned_data.get('phone', '').strip()
-        if not phone_input:
-            return None
-        try:
-            normalized = normalize_indian_phone(phone_input)
-        except ValidationError as e:
-            raise forms.ValidationError(e.message)
-
-        if User.objects.filter(phone=normalized).exists():
-            raise forms.ValidationError('An account with this mobile number already exists.')
-        return normalized
-
 
 class LoginForm(AuthenticationForm):
     username = forms.CharField(label='Username or Email')
@@ -177,7 +158,7 @@ class VerifyOTPForm(forms.Form):
 class CandidateProfileForm(forms.ModelForm):
     class Meta:
         model = CandidateProfile
-        fields = ('phone', 'location', 'skills', 'experience_years', 'education', 'about')
+        fields = ('location', 'skills', 'experience_years', 'education', 'about')
         widgets = {'about': forms.Textarea(attrs={'rows': 4})}
 
 

@@ -40,7 +40,14 @@
             <div class="form-group">
                 <label for="id_username">Username</label>
                 <input type="text" id="id_username" name="username" value="{{ form.username.value|default:'' }}" required placeholder="Choose a username">
-                {% if form.username.errors %}<div class="errorlist">{{ form.username.errors }}</div>{% endif %}
+                {% if form.username.errors %}
+                    <div class="errorlist">
+                        {{ form.username.errors }}
+                        {% if 'This email is already registered. Sign in instead.' in form.username.errors %}
+                            <a href="{% url 'login' %}">Sign in</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
             </div>
 
             <!-- Email -->
@@ -48,15 +55,14 @@
                 <label for="id_email">Email address</label>
                 <input type="email" id="id_email" name="email" value="{{ form.email.value|default:'' }}" required placeholder="name@example.com">
                 {% if otp_required %}<span class="helptext">A 6-digit verification code will be sent to this email.</span>{% endif %}
-                {% if form.email.errors %}<div class="errorlist">{{ form.email.errors }}</div>{% endif %}
-            </div>
-
-            <!-- Phone (Optional) -->
-            <div class="form-group">
-                <label for="id_phone">Mobile number <span style="font-weight: normal; color: var(--text-muted);">(Optional)</span></label>
-                <input type="text" id="id_phone" name="phone" value="{{ form.phone.value|default:'' }}" placeholder="10-digit mobile number">
-                <span class="helptext">Valid Indian mobile format (e.g. 9876543210).</span>
-                {% if form.phone.errors %}<div class="errorlist">{{ form.phone.errors }}</div>{% endif %}
+                {% if form.email.errors %}
+                    <div class="errorlist">
+                        {{ form.email.errors }}
+                        {% if 'This email is already registered. Sign in instead.' in form.email.errors %}
+                            <a href="{% url 'login' %}">Sign in</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
             </div>
 
             <!-- Passwords -->

@@ -50,12 +50,12 @@ def check_recruiter_domain_match(email, website):
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ('Role & Verification', {'fields': ('role', 'phone')}),
+        ('Role & Verification', {'fields': ('role',)}),
     )
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Role & Verification', {'fields': ('role', 'phone')}),
+        ('Role & Verification', {'fields': ('role',)}),
     )
-    list_display = ('username', 'email', 'phone', 'role', 'is_active', 'is_staff')
+    list_display = ('username', 'email', 'role', 'is_active', 'is_staff')
     list_filter = ('role', 'is_active', 'is_staff')
 
 
