@@ -97,7 +97,7 @@
             <article class="job-card">
                 <div>
                     <h3 class="job-card-title">
-                        <a href="{% url 'job_detail' job.pk %}">{{ job.title }}</a>
+                        <a href="{{ job.get_absolute_url }}">{{ job.title }}</a>
                     </h3>
                     <div class="job-card-company">
                         <span>{{ job.company_name }}</span>

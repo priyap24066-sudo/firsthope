@@ -74,7 +74,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding: var(--space-3) 0; gap: var(--space-2); flex-wrap: wrap;">
                     <div>
                         <div style="font-weight: 600; margin-bottom: 2px;">
-                            <a href="{% url 'job_detail' app.job.pk %}">{{ app.job.title }}</a>
+                            <a href="{{ app.job.get_absolute_url }}">{{ app.job.title }}</a>
                         </div>
                         <div style="font-size: var(--font-small); color: var(--text-muted);">
                             {{ app.job.company_name }} &bull; Applied {{ app.applied_at|date:"M d, Y" }}
@@ -101,7 +101,7 @@
             {% for job in recommended_jobs %}
                 <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-3); margin-bottom: var(--space-3);">
                     <div style="font-weight: 600; margin-bottom: 2px;">
-                        <a href="{% url 'job_detail' job.pk %}">{{ job.title }}</a>
+                        <a href="{{ job.get_absolute_url }}">{{ job.title }}</a>
                     </div>
                     <div style="font-size: var(--font-small); color: var(--text-secondary); margin-bottom: var(--space-2);">
                         {{ job.company_name }} &bull; {{ job.location }}

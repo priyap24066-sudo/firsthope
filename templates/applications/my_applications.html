@@ -19,7 +19,7 @@
             <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-2);">
                 <div>
                     <h3 style="font-size: 16px; margin-bottom: 4px;">
-                        <a href="{% url 'job_detail' app.job.pk %}" style="color: var(--brand-navy);">{{ app.job.title }}</a>
+                        <a href="{{ app.job.get_absolute_url }}" style="color: var(--brand-navy);">{{ app.job.title }}</a>
                     </h3>
                     <p style="color: var(--text-secondary); font-size: var(--font-small); margin: 0;">
                         <strong>{{ app.job.company_name }}</strong> &bull; {{ app.job.location }} &bull; {{ app.job.get_job_type_display }}
@@ -34,7 +34,7 @@
                 </span>
                 <div style="display: flex; gap: var(--space-3);">
                     <a href="{% url 'download_resume' app.pk %}" target="_blank" style="font-weight: 500;">Download submitted resume</a>
-                    <a href="{% url 'job_detail' app.job.pk %}" style="font-weight: 500;">View job details &rarr;</a>
+                    <a href="{{ app.job.get_absolute_url }}" style="font-weight: 500;">View job details &rarr;</a>
                 </div>
             </div>
         </article>

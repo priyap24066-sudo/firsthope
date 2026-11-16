@@ -29,7 +29,7 @@
             {% for job in jobs %}
                 <tr>
                     <td>
-                        <a href="{% url 'job_detail' job.pk %}" style="font-weight: 600; color: var(--brand-navy);">{{ job.title }}</a>
+                        <a href="{{ job.get_absolute_url }}" style="font-weight: 600; color: var(--brand-navy);">{{ job.title }}</a>
                         <div style="font-size: var(--font-small); color: var(--text-muted);">{{ job.company_name }}</div>
                     </td>
                     <td>{{ job.location }}</td>

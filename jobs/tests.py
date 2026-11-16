@@ -82,25 +82,25 @@ class JobTests(TestCase):
         self.cand.candidate_profile.save()
 
         self.client.login(username='cand', password=PASSWORD)
-        response = self.client.get(reverse('job_detail', args=[job.pk]))
+        response = self.client.get(job.get_absolute_url())
         self.assertContains(response, 'Skill match')
         self.assertContains(response, '67%')
         self.assertContains(response, 'You have:</strong> Python, React')
         self.assertContains(response, 'Missing:</strong> Django')
 
         self.client.logout()
-        response = self.client.get(reverse('job_detail', args=[job.pk]))
+        response = self.client.get(job.get_absolute_url())
         self.assertNotContains(response, 'Skill match')
 
         self.client.login(username='rec2', password=PASSWORD)
-        response = self.client.get(reverse('job_detail', args=[job.pk]))
+        response = self.client.get(job.get_absolute_url())
         self.assertNotContains(response, 'Skill match')
 
     def test_skill_match_prompts_candidates_to_add_profile_skills(self):
         job = make_job(self.rec1)
         self.client.login(username='cand', password=PASSWORD)
 
-        response = self.client.get(reverse('job_detail', args=[job.pk]))
+        response = self.client.get(job.get_absolute_url())
 
         self.assertContains(response, 'Add skills to your profile to see your match')
         self.assertContains(response, reverse('profile'), html=False)
@@ -185,17 +185,29 @@ class JobTests(TestCase):
         self.assertNotContains(response, 'Secret Job')
 
         # Detail page returns 404 for anonymous user and candidate
-        response = self.client.get(reverse('job_detail', args=[job.pk]))
+        response = self.client.get(job.get_absolute_url())
         self.assertEqual(response.status_code, 404)
 
         self.client.login(username='cand', password=PASSWORD)
-        response = self.client.get(reverse('job_detail', args=[job.pk]))
+        response = self.client.get(job.get_absolute_url())
         self.assertEqual(response.status_code, 404)
 
         # But recruiter owner can view their own job detail
         self.client.login(username='unver_rec2', password=PASSWORD)
-        response = self.client.get(reverse('job_detail', args=[job.pk]))
+        response = self.client.get(job.get_absolute_url())
         self.assertEqual(response.status_code, 200)
+
+    def test_legacy_job_detail_url_redirects_to_canonical_url(self):
+        job = make_job(self.rec1)
+
+        response = self.client.get(reverse('job_detail_legacy', args=[job.pk]))
+
+        self.assertRedirects(
+            response,
+            job.get_absolute_url(),
+            status_code=301,
+            fetch_redirect_response=False,
+        )
 
     def test_candidate_can_report_job_only_once(self):
         job = make_job(self.rec1, title='Suspicious Job')

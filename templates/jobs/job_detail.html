@@ -102,7 +102,7 @@
                     {% else %}
                         <details class="job-report-details">
                             <summary>Report this job</summary>
-                            <form method="post" action="{% url 'job_detail' job.pk %}" class="job-report-form">
+                            <form method="post" action="{{ job.get_absolute_url }}" class="job-report-form">
                                 {% csrf_token %}
                                 <label for="job-report-reason">Tell us why you are reporting this listing</label>
                                 <textarea id="job-report-reason" name="reason" rows="3" required></textarea>

@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container-narrow" style="max-width: 560px;">
     <div style="margin-bottom: var(--space-4);">
-        <a href="{% url 'job_detail' job.pk %}" style="font-size: var(--font-small); color: var(--text-muted);">&larr; Back to job details</a>
+        <a href="{{ job.get_absolute_url }}" style="font-size: var(--font-small); color: var(--text-muted);">&larr; Back to job details</a>
     </div>
 
     <div class="card" style="padding: var(--space-6);">
@@ -37,7 +37,7 @@
 
             <div style="display: flex; gap: var(--space-3); margin-top: var(--space-6);">
                 <button type="submit" class="btn btn-primary" style="flex: 1;">Submit application</button>
-                <a href="{% url 'job_detail' job.pk %}" class="btn btn-outline">Cancel</a>
+                <a href="{{ job.get_absolute_url }}" class="btn btn-outline">Cancel</a>
             </div>
         </form>
     </div>

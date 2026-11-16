@@ -50,7 +50,7 @@
                         <span class="company-avatar {% cycle 'company-color-blue' 'company-color-green' 'company-color-purple' 'company-color-orange' 'company-color-teal' %}" aria-hidden="true">{{ job.company_name|first|upper }}</span>
                         <div class="job-list-title-group">
                             <h2 class="job-card-title">
-                                <a href="{% url 'job_detail' job.pk %}">{{ job.title }}</a>
+                                <a href="{{ job.get_absolute_url }}">{{ job.title }}</a>
                             </h2>
                             <div class="job-card-company">
                                 <span>{{ job.company_name }}</span>

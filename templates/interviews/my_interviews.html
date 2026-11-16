@@ -14,7 +14,7 @@
             <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-3);">
                 <div>
                     <h3 style="font-size: 16px; margin-bottom: 4px;">
-                        <a href="{% url 'job_detail' i.application.job.pk %}" style="color: var(--brand-navy);">{{ i.application.job.title }}</a>
+                        <a href="{{ i.application.job.get_absolute_url }}" style="color: var(--brand-navy);">{{ i.application.job.title }}</a>
                         <span style="font-size: var(--font-small); color: var(--text-muted); font-weight: normal;">
                             &bull; {{ i.application.job.company_name }}
                         </span>
