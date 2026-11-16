@@ -81,6 +81,8 @@ def home(request):
     ]
     for job_type in job_type_cards:
         job_type['open_job_count'] = job_type_counts.get(job_type['value'], 0)
+    # Hide job type cards with zero open jobs (Task 4.3)
+    job_type_cards = [jt for jt in job_type_cards if jt['open_job_count'] > 0]
 
     return render(request, 'home.html', {
         'latest_jobs': latest_jobs,

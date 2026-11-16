@@ -4,7 +4,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}FirstHope - Job Recruitment and ATS{% endblock %}</title>
+
+    {# ── SEO block: each child template overrides this entire block ── #}
+    {% block seo %}
+    <title>FirstHope – Find Verified Jobs in Tamil Nadu</title>
+    <meta name="description" content="FirstHope is a verified job portal for Tamil Nadu. Browse full-time, part-time, internship and contract jobs from verified employers. Apply now.">
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+    <meta name="robots" content="index,follow">
+
+    {# Open Graph #}
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="FirstHope">
+    <meta property="og:title" content="FirstHope – Find Verified Jobs in Tamil Nadu">
+    <meta property="og:description" content="Browse verified job listings from registered employers across Tamil Nadu. Full-time, internship, part-time and contract roles.">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'icons/icon-512.png' %}">
+
+    {# Twitter Card #}
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="FirstHope – Find Verified Jobs in Tamil Nadu">
+    <meta name="twitter:description" content="Browse verified job listings from registered employers across Tamil Nadu.">
+    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'icons/icon-512.png' %}">
+    {% endblock seo %}
+
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0F1E3D">
     <link rel="icon" type="image/png" href="{% static 'icons/favicon.png' %}">
@@ -39,6 +61,7 @@
                     <a href="{% url 'coach' %}" class="nav-link">AI Coach</a>
                     <a href="{% url 'my_applications' %}" class="nav-link">Applications</a>
                     <a href="{% url 'my_interviews' %}" class="nav-link">Interviews</a>
+                    <a href="{% url 'saved_jobs' %}" class="nav-link">Saved Jobs</a>
                 {% endif %}
 
                 {% if user.role == 'recruiter' %}
@@ -85,6 +108,7 @@
         <div>FirstHope &mdash; Job Recruitment and Applicant Tracking System</div>
         <div>
             <a href="{% url 'job_list' %}">Browse jobs</a>
+            <a href="{% url 'blog_list' %}">Career Tips</a>
             {% if not user.is_authenticated %}
                 <a href="{% url 'register' %}">Create account</a>
                 <a href="{% url 'login' %}">Sign in</a>

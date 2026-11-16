@@ -1,0 +1,20 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /login/
+Disallow: /register/
+Disallow: /verify-otp/
+Disallow: /resend-otp/
+Disallow: /password-reset/
+Disallow: /password-reset-complete/
+Disallow: /dashboard/
+Disallow: /profile/
+Disallow: /api/
+Disallow: /api-auth/
+Disallow: /coach/
+Disallow: /applications/
+Disallow: /interviews/
+Disallow: /documents/
+Disallow: /verification/
+Allow: /
+
+Sitemap: {{ request.scheme }}://{{ request.get_host }}/sitemap.xml

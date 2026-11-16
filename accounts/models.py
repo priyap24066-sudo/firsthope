@@ -7,7 +7,10 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Exists, OuterRef
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.text import slugify
+
 
 class User(AbstractUser):
     class Role(models.TextChoices):
@@ -81,6 +84,7 @@ class RecruiterProfile(models.Model):
         User, on_delete=models.CASCADE, related_name='recruiter_profile'
     )
     company_name = models.CharField(max_length=150, blank=True)
+    company_slug = models.SlugField(max_length=180, blank=True, db_index=True)
     company_website = models.URLField(blank=True)
     company_email = models.EmailField(blank=True)
     address = models.TextField(blank=True)
@@ -97,6 +101,16 @@ class RecruiterProfile(models.Model):
     @website.setter
     def website(self, value):
         self.company_website = value
+
+    def save(self, *args, **kwargs):
+        if self.company_name and not self.company_slug:
+            self.company_slug = slugify(self.company_name)
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        if self.company_slug:
+            return reverse('company_profile', kwargs={'slug': self.company_slug})
+        return reverse('company_profile', kwargs={'slug': f'company-{self.pk}'})
 
     def clean(self):
         super().clean()
